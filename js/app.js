@@ -1,13 +1,12 @@
-import { setProducts, getProducts, setIsAdult, ADULT_CATS } from './state.js';
-import { render } from './ui.js';
+import { setProducts, getProducts, setIsAdult } from './state.js';
 import { updateCartUI } from './cart.js';
 import { loadCart } from './storage.js';
 import { openModal, closeModal, closeBg, changeQty, addFromModal, selectFundaSize, selectBottleMode } from './modal.js';
-import { filter, setCat, setBrand, renderBrandFilters, hideAlcohol } from './filters.js';
-import { sendToWhatsApp, doSendToWhatsApp } from './whatsapp.js';
+import { filter, setCat, hideAlcohol } from './filters.js';
+import { sendToWhatsApp } from './whatsapp.js';
 import { updateClientInfoLine, editClientInfo, confirmClientInfo, cancelClientInfo } from './client.js';
 import { openOrderHistory, closeOrderHistory, closeHistoryBg } from './history.js';
-import { clearCart, addToCartById, removeFromCart, getCART } from './cart.js';
+import { clearCart, addToCartById, removeFromCart } from './cart.js';
 
 // ── PRODUCT LOADING ──────────────────────────────────────
 async function loadProducts() {
@@ -23,7 +22,7 @@ async function loadProducts() {
     }
 }
 
-export { loadProducts };
+
 
 function showLoadError() {
   const grid = document.getElementById('grid');

@@ -1,6 +1,5 @@
 import { getProducts, getActiveCat, setActiveCat, getActiveBrand, setActiveBrand, isAdultUser, ADULT_CATS } from './state.js';
 import { render } from './ui.js';
-import { loadProducts } from './app.js';
 
 export function hideAlcohol() {
   document.querySelectorAll('.fb').forEach(btn => {
@@ -15,11 +14,9 @@ export function hideAlcohol() {
   }
 }
 
-export async function filter() {
+export function filter() {
   const PRODUCTS = getProducts();
-  if (PRODUCTS.length === 0) {
-    await loadProducts();
-  }
+  if (PRODUCTS.length === 0) return;
   const activeCat = getActiveCat();
   const isAdult = isAdultUser();
   const q = document.getElementById('searchInput').value.toLowerCase();

@@ -17,8 +17,10 @@ export function openOrderHistory() {
       const dateStr = `${day} ${month} · ${hours}:${mins}`;
       const itemsHtml = entry.items.map(item => {
         const qtyDisplay = item.cat === 'vino' || item.cat === 'sidra'
-          ? `${item.qty} u.`
-          : `${item.qty} funda(s) (${item.qty * item.units} u.)`;
+          ? item.units === 1
+            ? `${item.qty} unidad${item.qty > 1 ? 'es' : ''}`
+            : `${item.qty} caja${item.qty > 1 ? 's' : ''} (${item.qty * 6} u.)`
+          : `${item.qty} funda${item.qty > 1 ? 's' : ''} (${item.qty * item.units} u.)`;
         return `<div class="history-item-product">• ${item.name} — ${qtyDisplay}</div>`;
       }).join('');
       return `<div class="history-item">

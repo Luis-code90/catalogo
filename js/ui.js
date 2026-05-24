@@ -53,10 +53,10 @@ export function render(data) {
           <button class="c-btn">+</button>
         </div>
       </div>`;
-    const inCart = CART.find(c => c.id === p.id);
-    if (inCart) {
+    const totalQty = CART.filter(c => c.id === p.id).reduce((sum, c) => sum + c.qty, 0);
+    if (totalQty > 0) {
       card.classList.add('in-cart');
-      card.querySelector('.c-btn').textContent = '×' + inCart.qty;
+      card.querySelector('.c-btn').textContent = '×' + totalQty;
     }
     grid.appendChild(card);
   });
