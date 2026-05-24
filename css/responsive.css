@@ -1,0 +1,16 @@
+@media(max-width:580px){
+  header,
+  .controls,
+  main { padding-left:1rem; padding-right:1rem; }
+  .hero { padding:2rem 1rem 2rem; }
+  .grid { grid-template-columns:repeat(auto-fill,minmax(155px,1fr)); gap:.75rem; }
+  .brand-filters { padding:.4rem 1rem .5rem; overflow-x:auto; flex-wrap:nowrap; }
+  .brand-filters::-webkit-scrollbar { display:none; }
+  .cart-panel { width:100%; border-radius:20px 20px 0 0; max-height:80vh; }
+  .filters { flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:2px; }
+  .filters::-webkit-scrollbar { display:none; }
+  .modal { max-height:100vh; border-radius:20px 20px 0 0; }
+  .overlay { padding:0; align-items:flex-end; }
+  .fs-btn { padding:.9rem .5rem; }
+  .fs-qty { font-size:1.6rem; }
+}

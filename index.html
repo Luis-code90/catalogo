@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" sizes="16x16" href="https://res.cloudinary.com/dlctgxtrf/image/upload/v1773360523/mirlo-logo_u9i3ih.png">
+<title>Catálogo — Mirlo SAS / CCU Uruguay</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/variables.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/cards.css">
+<link rel="stylesheet" href="css/modal.css">
+<link rel="stylesheet" href="css/cart.css">
+<link rel="stylesheet" href="css/overlays.css">
+<link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+
+<!-- MODAL VERIFICACIÓN DE EDAD -->
+<div class="age-overlay" id="ageOverlay">
+  <div class="age-box">
+    <div class="age-icon">🍺</div>
+    <div class="age-title">Verificación de Edad</div>
+    <p class="age-sub">Este sitio contiene productos con alcohol.<br>¿Sos mayor de 18 años?</p>
+    <div class="age-btns">
+      <button class="age-btn yes" onclick="confirmAge(true)">Sí, soy mayor de 18</button>
+      <button class="age-btn no"  onclick="confirmAge(false)">No, soy menor</button>
+    </div>
+    <div class="age-warning" id="ageWarning">
+      ⚠️ El consumo de alcohol está prohibido para menores de edad. Solo podrás ver productos sin alcohol.
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PROMOCIONAL -->
+<div class="promo-overlay" id="promoOverlay" onclick="closePromo()">
+  <div class="promo-box" onclick="event.stopPropagation()">
+    <button class="promo-close" onclick="closePromo()">✕</button>
+      <img class="promo-img" src="https://res.cloudinary.com/dlctgxtrf/image/upload/v1773616408/file_00000000ada471f5ab817f2489525e00_plvvkw.png" alt="Promoción">
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">
+      <img src="https://res.cloudinary.com/dlctgxtrf/image/upload/v1773360523/mirlo-logo_u9i3ih.png" alt="Mirlo SAS">
+    </div>
+    <div>
+      <div class="logo-name">Mirlo SAS</div>
+      <span class="logo-sub">Distribuidor Oficial CCU</span>
+    </div>
+  </div>
+  <div class="validity">Vigencia:<br> 01 / 05 / 2026</div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-pill">🇺🇾 Uruguay · Distribución Oficial</div>
+    <h1>Catálogo<br><em>de Precios</em></h1>
+    <p>Agua mineral, gaseosas, néctares, isotónicas, cervezas, vinos y sidras.<br> Precios para comercio y público.</p>
+  </div>
+</div>
+
+<!-- CONTROLS -->
+<div class="controls">
+  <div class="search-wrap">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0e4d66" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="searchInput" placeholder="Buscar producto, marca, sabor…">
+  </div>
+  <div class="filters">
+    <button class="fb active" data-cat="todos">Todos</button>
+    <button class="fb" data-cat="agua">💧 Agua</button>
+    <button class="fb" data-cat="gaseosa">🥤 Gaseosa</button>
+    <button class="fb" data-cat="nectar">🍊 Néctar</button>
+    <button class="fb" data-cat="isotonica">⚡ Isotónica</button>
+    <button class="fb" data-cat="cerveza">🍺 Cervezas</button>
+    <button class="fb" data-cat="vino">🍷 Vinos</button>
+    <button class="fb" data-cat="sidra">🍎 Sidras</button>
+  </div>
+  <div class="brand-filters" id="brandFilters"></div>
+</div>
+
+<!-- MAIN -->
+<main>
+  <div class="grid-header">
+    <div class="grid-title">Productos</div>
+    <div class="grid-count" id="countLbl"></div>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty">
+    <div class="empty-icon">🔍</div>
+    <p>No se encontraron productos.</p>
+  </div>
+</main>
+
+<!-- CART -->
+<div class="cart" id="cartBtn" onclick="toggleCart()">
+  <div class="cart-icon">🛒</div>
+  <div class="cart-badge" id="cartCount">0</div>
+</div>
+
+<div class="cart-panel" id="cartPanel">
+  <div class="cart-header">
+    <div class="ch-title">Tu pedido</div>
+    <div class="ch-actions">
+      <button class="ch-history" onclick="openOrderHistory()">📋</button>
+      <button class="ch-clear" onclick="clearCart()">Limpiar</button>
+    </div>
+  </div>
+  <div class="cart-client-info" id="cartClientInfo" onclick="editClientInfo()">
+    📍 <span id="cartClientName"></span> · <span id="cartClientBusiness"></span>
+  </div>
+  <div class="cart-list" id="cartList"></div>
+  <div class="cart-total">
+    <span>Total:</span>
+    <span id="cartTotal">$ 0</span>
+  </div>
+  <div class="cart-min-order" id="cartMinOrder"></div>
+  <button class="cart-whatsapp" onclick="sendToWhatsApp()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.974 2.898 1.858 1.863 2.868 4.278 2.868 6.824 0 5.203-4.436 9.596-9.885 9.596z"/></svg>
+    <span>Enviar pedido</span>
+    <div class="cw-tooltip">Se abrirá WhatsApp Web</div>
+  </button>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" onclick="closeBg(event)">
+  <div class="modal">
+    <div class="modal-photo" id="mPhoto">
+      <div class="modal-photo-gradient"></div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-cat"  id="mCat"></div>
+      <div class="modal-name" id="mName"></div>
+      <div class="modal-bar"  id="mBar"></div>
+      <div class="info-grid">
+        <div class="info-box"><div class="ib-label">Presentación</div><div class="ib-value" id="mSize"></div></div>
+        <div class="info-box"><div class="ib-label">Unid. por funda</div><div class="ib-value" id="mUnits"></div></div>
+      </div>
+      <div class="price-strip">
+        <div class="ps-box com"><div class="ps-label">Costo Unitario</div><div class="ps-val" id="mPCom"></div></div>
+        <div class="ps-box pub"><div class="ps-label">Precio Sugerido Publico</div><div class="ps-val" id="mPPub"></div></div>
+      </div>
+      <div class="funda-selector" id="modalFundaSelector" style="display:none">
+        <div class="fs-label">Tamaño de funda</div>
+        <div class="fs-options">
+          <button class="fs-btn active" data-size="6">
+            <span class="fs-qty">×6</span>
+            <span class="fs-desc">unidades</span>
+          </button>
+          <button class="fs-btn" data-size="24">
+            <span class="fs-qty">×24</span>
+            <span class="fs-desc">unidades</span>
+          </button>
+        </div>
+      </div>
+      <div class="funda-selector" id="modalBottleSelector" style="display:none">
+        <div class="fs-label">¿Cómo querés pedirlo?</div>
+        <div class="fs-options">
+          <button class="fs-btn active" data-mode="unit">
+            <span class="fs-qty">×1</span>
+            <span class="fs-desc">por unidad</span>
+          </button>
+          <button class="fs-btn" data-mode="box">
+            <span class="fs-qty">×6</span>
+            <span class="fs-desc">caja completa</span>
+          </button>
+        </div>
+      </div>
+      <div class="price-funda-box">
+        <div class="pfb-label">PRECIO POR FUNDA (<span id="mUnitsDisplay"></span> U)</div>
+        <div class="pfb-value" id="mPFunda"></div>
+      </div>
+      <div class="modal-actions">
+        <div class="qty-selector">
+          <button onclick="changeQty(-1)">−</button>
+          <span id="modalQty">1</span>
+          <button onclick="changeQty(1)">+</button>
+        </div>
+        <button class="ma-add" id="modalAddBtn" onclick="addFromModal()">Agregar al pedido</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL HISTORIAL -->
+<div class="history-overlay" id="historyOverlay" onclick="closeHistoryBg(event)">
+  <div class="history-box">
+    <div class="history-header">
+      <div class="history-title">📋 Historial de pedidos</div>
+      <button class="history-close" onclick="closeOrderHistory()">✕</button>
+    </div>
+    <div class="history-list" id="historyList">
+      <div class="history-empty">No hay pedidos anteriores.</div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DATOS DEL CLIENTE -->
+<div class="client-overlay" id="clientOverlay">
+  <div class="client-box">
+    <div class="client-icon">📋</div>
+    <div class="client-title">Datos del Pedido</div>
+    <p class="client-sub">Completá tus datos para enviar el pedido</p>
+    <input class="client-input" id="clientNameInput" placeholder="Tu nombre" autocomplete="name">
+    <input class="client-input" id="clientBusinessInput" placeholder="Nombre del comercio">
+    <input class="client-input" id="clientAddressInput" placeholder="Dirección del comercio">
+    <div class="client-error" id="clientError">Todos los campos son obligatorios</div>
+    <div class="client-btns">
+      <button class="client-btn cancel" onclick="cancelClientInfo()">Cancelar</button>
+      <button class="client-btn confirm" onclick="confirmClientInfo()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>

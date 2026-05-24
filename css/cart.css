@@ -1,0 +1,122 @@
+/* CART FAB */
+.cart {
+  position:fixed; bottom:1.5rem; right:1.5rem;
+  width:60px; height:60px;
+  background:var(--deep); border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; z-index:250;
+  box-shadow:0 4px 20px rgba(0,0,0,.3);
+  transition:transform .2s, box-shadow .2s;
+}
+.cart:hover { transform:scale(1.08); box-shadow:0 6px 28px rgba(0,0,0,.4); }
+.cart-icon { font-size:1.5rem; }
+.cart-badge {
+  position:absolute; top:-4px; right:-4px;
+  min-width:22px; height:22px;
+  background:var(--gold); border-radius:11px;
+  font-size:.7rem; font-weight:700; color:var(--deep);
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; transform:scale(.5); transition:all .2s;
+}
+.cart.has-items .cart-badge { opacity:1; transform:scale(1); }
+@keyframes cartBounce {
+  0% { transform:scale(1); }
+  50% { transform:scale(1.3); }
+  100% { transform:scale(1); }
+}
+.cart-bounce { animation:cartBounce .3s ease; }
+
+/* CART PANEL */
+.cart-panel {
+  position:fixed; bottom:0; right:0;
+  width:380px; max-width:100vw; max-height:70vh;
+  background:#fff; border-radius:20px 0 0 0;
+  box-shadow:0 -4px 30px rgba(0,0,0,.25);
+  display:flex; flex-direction:column;
+  transform:translateY(100%); opacity:0;
+  transition:transform .3s ease, opacity .3s;
+  z-index:260;
+}
+.cart-panel.open { transform:translateY(0); opacity:1; }
+
+.cart-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:1rem 1.2rem; border-bottom:1px solid var(--frost);
+}
+.ch-title { font-family:'Bebas Neue',sans-serif; font-size:1.3rem; letter-spacing:1px; color:var(--deep); }
+.ch-clear {
+  background:none; border:none;
+  font-size:.75rem; color:var(--muted); cursor:pointer;
+  text-decoration:underline;
+}
+.ch-clear:hover { color:var(--teal); }
+.ch-actions { display:flex; align-items:center; gap:.5rem; }
+.ch-history {
+  background:none; border:none; font-size:1rem; cursor:pointer;
+  padding:2px 4px; border-radius:4px; transition:background .15s;
+  line-height:1;
+}
+.ch-history:hover { background:var(--frost); }
+
+.cart-client-info {
+  display:flex; align-items:center; gap:.3rem;
+  padding:.5rem 1.2rem; font-size:.72rem; color:var(--muted);
+  cursor:pointer; border-bottom:1px solid var(--frost);
+  transition:color .15s;
+}
+.cart-client-info:hover { color:var(--teal); }
+
+.cart-list {
+  flex:1; overflow-y:auto; padding:.8rem 1.2rem;
+}
+.cart-empty { text-align:center; color:var(--muted); padding:2rem 0; font-size:.85rem; }
+
+.cart-item {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:.6rem 0; border-bottom:1px solid var(--frost);
+}
+.ci-info { flex:1; }
+.ci-name { font-size:.8rem; font-weight:600; color:var(--deep); }
+.ci-qty { font-size:.72rem; color:var(--muted); }
+.ci-actions { display:flex; gap:.4rem; }
+.ci-btn {
+  width:28px; height:28px;
+  background:var(--light); border:none; border-radius:6px;
+  font-size:1rem; font-weight:600; color:var(--deep);
+  cursor:pointer; transition:background .15s;
+}
+.ci-btn:hover { background:var(--frost); }
+
+.cart-total {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:.9rem 1.2rem; background:var(--light);
+  font-weight:600; color:var(--deep);
+}
+.cart-total span:last-child { font-family:'Bebas Neue',sans-serif; font-size:1.4rem; letter-spacing:1px; color:var(--teal); }
+
+.cart-whatsapp {
+  display:flex; align-items:center; justify-content:center; gap:.6rem;
+  margin:0 1.2rem 1.2rem; padding:1rem;
+  background:#25D366; border:none; border-radius:12px;
+  font-family:'Sora',sans-serif; font-size:.95rem; font-weight:600; color:#fff;
+  cursor:pointer; transition:background .2s;
+  position:relative;
+}
+.cart-whatsapp:hover { background:#128C7E; }
+.cart-whatsapp svg { flex-shrink:0; }
+.cart-whatsapp .cw-tooltip {
+  position:absolute; bottom:100%; left:50%; transform:translateX(-50%);
+  background:var(--deep); color:#fff; font-size:.65rem; font-weight:400;
+  padding:.4rem .7rem; border-radius:6px; margin-bottom:.5rem;
+  white-space:nowrap; opacity:0; pointer-events:none; transition:opacity .2s;
+}
+.cart-whatsapp:hover .cw-tooltip { opacity:1; }
+
+.cart-min-order {
+  padding:.5rem 1.2rem;
+  font-size:.75rem;
+  font-weight:600;
+  text-align:center;
+}
+.cart-min-order.reached { color:var(--teal); }
+.cart-min-order.pending { color:var(--muted); }

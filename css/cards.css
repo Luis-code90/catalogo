@@ -1,0 +1,62 @@
+/* GRID */
+.grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(200px,1fr));
+  gap:1rem;
+}
+
+/* CARD */
+.card {
+  background:#fff; border-radius:14px; overflow:hidden;
+  box-shadow:0 2px 12px rgba(0,0,0,.07);
+  cursor:pointer;
+  transition:transform .22s ease, box-shadow .22s ease;
+  animation:rise .35s ease both;
+  display:flex; flex-direction:column;
+}
+.card:hover { transform:translateY(-6px); box-shadow:0 16px 40px rgba(8,42,56,.15); }
+@keyframes rise { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+/* image area */
+.card-photo {
+  width:100%; aspect-ratio:1/1;
+  position:relative; overflow:hidden;
+  background:var(--light);
+  display:flex; align-items:center; justify-content:center;
+}
+.card-photo img {
+  width:100%; height:100%;
+  object-fit:cover;
+  transition:transform .35s ease;
+}
+.card:hover .card-photo img { transform:scale(1.06); }
+.card-photo .fallback {
+  font-size:4rem;
+  opacity:.55;
+  user-select:none;
+}
+.cat-chip {
+  position:absolute; top:9px; left:9px;
+  font-size:.58rem; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+  padding:3px 9px; border-radius:20px;
+  background:rgba(8,42,56,.72); color:#fff;
+  backdrop-filter:blur(4px);
+}
+
+/* body */
+.card-body { padding:.85rem .95rem 1rem; flex:1; display:flex; flex-direction:column; }
+.card-brand { font-size:.6rem; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--teal); margin-bottom:3px; }
+.card-name  { font-size:.9rem; font-weight:600; color:var(--deep); line-height:1.3; margin-bottom:3px; }
+.card-size  { font-size:.71rem; color:var(--muted); margin-bottom:auto; padding-bottom:.75rem; }
+.card-foot  { display:flex; align-items:center; justify-content:space-between; padding-top:.7rem; border-top:1px solid var(--frost); }
+.c-price    { font-family:'Bebas Neue',sans-serif; font-size:1.55rem; letter-spacing:1px; color:var(--teal); line-height:1; }
+.c-plabel   { font-size:.58rem; color:var(--muted); margin-top:1px; }
+.c-btn {
+  width:30px; height:30px; background:var(--deep); border-radius:7px; border:none;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  color:#fff; font-size:.95rem; transition:background .18s; flex-shrink:0;
+}
+.c-btn:hover { background:var(--teal); }
+.card.in-cart { border:2px solid var(--teal); }
+.card.in-cart .c-btn { background:var(--teal); }
+.c-btn-check { background:var(--teal) !important; }
