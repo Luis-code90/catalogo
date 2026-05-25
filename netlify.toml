@@ -1,0 +1,9 @@
+[[redirects]]
+  from = "/mirlosas"
+  to = "/"
+  status = 200
+
+[[redirects]]
+  from = "/mirlosas/*"
+  to = "/:splat"
+  status = 200
