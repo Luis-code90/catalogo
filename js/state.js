@@ -17,7 +17,7 @@ let modalBottleMode = 'unit';
 
 // ── CONSTANTS ────────────────────────────────────────────
 export const CART_STORAGE_KEY = 'mirlo_cart';
-export const WHATSAPP_PHONE = '59897684961';
+export const WHATSAPP_PHONE = '59897821688';
 export const MIN_ORDER_AMOUNT = 1000;
 export const ADULT_CATS = ['cerveza', 'vino', 'sidra'];
 
