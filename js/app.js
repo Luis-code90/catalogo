@@ -91,6 +91,7 @@ function setupEventListeners() {
 
   // Cart list delegation (+ / - buttons)
   document.getElementById('cartList').addEventListener('click', (e) => {
+    e.stopPropagation();
     const btn = e.target.closest('.ci-btn');
     if (!btn) return;
     const id = parseInt(btn.dataset.id);

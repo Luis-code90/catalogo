@@ -105,6 +105,16 @@
   font-family:'Sora',sans-serif; font-size:.85rem; color:var(--text);
   background:var(--light); outline:none; transition:border-color .2s; margin-bottom:.75rem;
 }
+.client-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-bottom: 0.5rem;
+  padding: 0;
+}
 .client-input:focus { border-color:var(--teal); background:#fff; }
 .client-error {
   display:none; background:#fff3cd; border:1px solid #ffc107; border-radius:8px;

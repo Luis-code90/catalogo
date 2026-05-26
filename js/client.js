@@ -89,8 +89,9 @@ export function clientStepNext() {
 }
 
 export function confirmClientInfo() {
+  const select = document.getElementById('vendorSelect');
   const vendor = getSelectedVendor();
-  if (!vendor) {
+  if (!vendor || !select.value) {
     document.getElementById('clientErrorVendor').classList.add('show');
     return;
   }
@@ -117,20 +118,13 @@ function showStep(step) {
 }
 
 function renderVendorList() {
-  const container = document.getElementById('vendorList');
+  const select = document.getElementById('vendorSelect');
   const vendors = CLIENTS[SLUG].vendors;
   const current = getSelectedVendor();
-  container.innerHTML = vendors.map(v => `
-    <div class="vendor-item ${current?.name === v.name ? 'selected' : ''}"
-         data-name="${v.name}" data-phone="${v.phone}">
-      <span class="vendor-name">${v.name}</span>
-      ${current?.name === v.name ? '<span class="vendor-check">✓</span>' : ''}
-    </div>
-  `).join('');
-  container.querySelectorAll('.vendor-item').forEach(el => {
-    el.addEventListener('click', () => {
-      setSelectedVendor({ name: el.dataset.name, phone: el.dataset.phone });
-      renderVendorList();
-    });
+  select.innerHTML = `<option value="">— Seleccioná tu vendedor —</option>` +
+    vendors.map(v => `<option value="${v.phone}" ${current?.name === v.name ? 'selected' : ''}>${v.name}</option>`).join('');
+  select.addEventListener('change', () => {
+    const vendor = vendors.find(v => v.phone === select.value);
+    if (vendor) setSelectedVendor({ name: vendor.name, phone: vendor.phone });
   });
 }
