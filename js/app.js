@@ -4,7 +4,7 @@ import { loadCart } from './storage.js';
 import { openModal, closeModal, closeBg, changeQty, addFromModal, selectFundaSize, selectBottleMode } from './modal.js';
 import { filter, setCat, hideAlcohol } from './filters.js';
 import { sendToWhatsApp } from './whatsapp.js';
-import { updateClientInfoLine, editClientInfo, confirmClientInfo, cancelClientInfo } from './client.js';
+import { updateClientInfoLine, editClientInfo, confirmClientInfo, cancelClientInfo, setClientType, clientStepBack, clientStepNext } from './client.js';
 import { openOrderHistory, closeOrderHistory, closeHistoryBg } from './history.js';
 import { clearCart, addToCartById, removeFromCart } from './cart.js';
 
@@ -178,5 +178,8 @@ window.closeHistoryBg = closeHistoryBg;
 window.editClientInfo = editClientInfo;
 window.confirmClientInfo = confirmClientInfo;
 window.cancelClientInfo = cancelClientInfo;
+window.setClientType = setClientType;
+window.clientStepBack = clientStepBack;
+window.clientStepNext = clientStepNext;
 window.filter = filter;
 window.init = init;

@@ -202,17 +202,64 @@
 <!-- MODAL DATOS DEL CLIENTE -->
 <div class="client-overlay" id="clientOverlay">
   <div class="client-box">
-    <div class="client-icon">📋</div>
-    <div class="client-title">Datos del Pedido</div>
-    <p class="client-sub">Completá tus datos para enviar el pedido</p>
-    <input class="client-input" id="clientNameInput" placeholder="Tu nombre" autocomplete="name">
-    <input class="client-input" id="clientBusinessInput" placeholder="Nombre del comercio">
-    <input class="client-input" id="clientAddressInput" placeholder="Dirección del comercio">
-    <div class="client-error" id="clientError">Todos los campos son obligatorios</div>
-    <div class="client-btns">
-      <button class="client-btn cancel" onclick="cancelClientInfo()">Cancelar</button>
-      <button class="client-btn confirm" onclick="confirmClientInfo()">Confirmar</button>
+
+    <!-- PASO 1: ¿Ya sos cliente? -->
+    <div id="clientStep1">
+      <div class="client-icon">👋</div>
+      <div class="client-title">¡Hola!</div>
+      <p class="client-sub">¿Ya sos cliente de Mirlo SAS?</p>
+      <div class="client-btns">
+        <button class="client-btn confirm" onclick="setClientType(true)">Sí, ya soy cliente</button>
+        <button class="client-btn cancel" onclick="setClientType(false)">No, soy nuevo</button>
+      </div>
     </div>
+
+    <!-- PASO 2A: Datos cliente existente -->
+    <div id="clientStep2A" style="display:none">
+      <div class="client-icon">📋</div>
+      <div class="client-title">Tus datos</div>
+      <p class="client-sub">Completá tus datos para el pedido</p>
+      <input class="client-input" id="clientNameInput" placeholder="Tu nombre" autocomplete="name">
+      <input class="client-input" id="clientBusinessInput" placeholder="Nombre del comercio">
+      <input class="client-input" id="clientAddressInput" placeholder="Dirección del comercio">
+      <div class="client-error" id="clientError">Todos los campos son obligatorios</div>
+      <div class="client-btns">
+        <button class="client-btn cancel" onclick="clientStepBack(1)">← Volver</button>
+        <button class="client-btn confirm" onclick="clientStepNext()">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- PASO 2B: Datos cliente nuevo -->
+    <div id="clientStep2B" style="display:none">
+      <div class="client-icon">🆕</div>
+      <div class="client-title">Alta de cliente</div>
+      <p class="client-sub">Completá tus datos para registrarte</p>
+      <input class="client-input" id="clientNewName" placeholder="Tu nombre completo" autocomplete="name">
+      <input class="client-input" id="clientNewBusiness" placeholder="Razón social">
+      <input class="client-input" id="clientNewDoc" placeholder="Cédula o RUT">
+      <input class="client-input" id="clientNewAddress" placeholder="Dirección del comercio">
+      <input class="client-input" id="clientNewPhone" placeholder="Teléfono de contacto" type="tel">
+      <input class="client-input" id="clientNewHours" placeholder="Horario de atención (ej: Lun-Vie 9-18)">
+      <div class="client-error" id="clientErrorNew">Todos los campos son obligatorios</div>
+      <div class="client-btns">
+        <button class="client-btn cancel" onclick="clientStepBack(1)">← Volver</button>
+        <button class="client-btn confirm" onclick="clientStepNext()">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- PASO 3: Selector de vendedor -->
+    <div id="clientStep3" style="display:none">
+      <div class="client-icon">🤝</div>
+      <div class="client-title">Tu vendedor</div>
+      <p class="client-sub">¿Quién es tu vendedor?</p>
+      <div class="vendor-list" id="vendorList"></div>
+      <div class="client-error" id="clientErrorVendor">Seleccioná un vendedor</div>
+      <div class="client-btns">
+        <button class="client-btn cancel" onclick="clientStepBack(2)">← Volver</button>
+        <button class="client-btn confirm" onclick="confirmClientInfo()">Enviar pedido 🚀</button>
+      </div>
+    </div>
+
   </div>
 </div>
 

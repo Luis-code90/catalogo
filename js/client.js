@@ -2,9 +2,14 @@ import {
   getClientName, setClientName,
   getClientBusiness, setClientBusiness,
   getClientAddress, setClientAddress,
-  getPendingSend, setPendingSend
+  getPendingSend, setPendingSend,
+  getSelectedVendor, setSelectedVendor,
+  getIsExistingClient, setIsExistingClient
 } from './state.js';
+import { CLIENTS } from './data.js';
 import { doSendToWhatsApp } from './whatsapp.js';
+
+const SLUG = 'mirlosas';
 
 export function updateClientInfoLine() {
   const el = document.getElementById('cartClientInfo');
@@ -21,29 +26,75 @@ export function updateClientInfoLine() {
 
 export function editClientInfo() {
   setPendingSend(false);
-  document.getElementById('clientNameInput').value = getClientName();
-  document.getElementById('clientBusinessInput').value = getClientBusiness();
-  document.getElementById('clientAddressInput').value = getClientAddress();
-  document.getElementById('clientError').classList.remove('show');
+  showStep(1);
   document.getElementById('clientOverlay').classList.add('open');
   document.body.style.overflow = 'hidden';
-  document.getElementById('clientNameInput').focus();
+}
+
+export function setClientType(isExisting) {
+  setIsExistingClient(isExisting);
+  if (isExisting) {
+    document.getElementById('clientNameInput').value = getClientName();
+    document.getElementById('clientBusinessInput').value = getClientBusiness();
+    document.getElementById('clientAddressInput').value = getClientAddress();
+    showStep('2A');
+    document.getElementById('clientNameInput').focus();
+  } else {
+    showStep('2B');
+    document.getElementById('clientNewName').focus();
+  }
+}
+
+export function clientStepBack(step) {
+  if (step === 2) {
+    const isExisting = getIsExistingClient();
+    showStep(isExisting ? '2A' : '2B');
+    return;
+  }
+  showStep(step);
+}
+
+export function clientStepNext() {
+  const isExisting = getIsExistingClient();
+  if (isExisting) {
+    const name     = document.getElementById('clientNameInput').value.trim();
+    const business = document.getElementById('clientBusinessInput').value.trim();
+    const address  = document.getElementById('clientAddressInput').value.trim();
+    if (!name || !business || !address) {
+      document.getElementById('clientError').classList.add('show');
+      return;
+    }
+    document.getElementById('clientError').classList.remove('show');
+    setClientName(name);
+    setClientBusiness(business);
+    setClientAddress(address);
+  } else {
+    const name     = document.getElementById('clientNewName').value.trim();
+    const business = document.getElementById('clientNewBusiness').value.trim();
+    const doc      = document.getElementById('clientNewDoc').value.trim();
+    const address  = document.getElementById('clientNewAddress').value.trim();
+    const phone    = document.getElementById('clientNewPhone').value.trim();
+    const hours    = document.getElementById('clientNewHours').value.trim();
+    if (!name || !business || !doc || !address || !phone || !hours) {
+      document.getElementById('clientErrorNew').classList.add('show');
+      return;
+    }
+    document.getElementById('clientErrorNew').classList.remove('show');
+    setClientName(name);
+    setClientBusiness(business);
+    setClientAddress(address);
+  }
+  renderVendorList();
+  showStep(3);
 }
 
 export function confirmClientInfo() {
-  const name     = document.getElementById('clientNameInput').value.trim();
-  const business = document.getElementById('clientBusinessInput').value.trim();
-  const address  = document.getElementById('clientAddressInput').value.trim();
-
-  if (!name || !business || !address) {
-    document.getElementById('clientError').classList.add('show');
+  const vendor = getSelectedVendor();
+  if (!vendor) {
+    document.getElementById('clientErrorVendor').classList.add('show');
     return;
   }
-
-  setClientName(name);
-  setClientBusiness(business);
-  setClientAddress(address);
-
+  document.getElementById('clientErrorVendor').classList.remove('show');
   document.getElementById('clientOverlay').classList.remove('open');
   document.body.style.overflow = '';
   updateClientInfoLine();
@@ -56,4 +107,30 @@ export function confirmClientInfo() {
 export function cancelClientInfo() {
   document.getElementById('clientOverlay').classList.remove('open');
   document.body.style.overflow = '';
+}
+
+function showStep(step) {
+  ['clientStep1','clientStep2A','clientStep2B','clientStep3'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+  document.getElementById('clientStep' + step).style.display = 'block';
+}
+
+function renderVendorList() {
+  const container = document.getElementById('vendorList');
+  const vendors = CLIENTS[SLUG].vendors;
+  const current = getSelectedVendor();
+  container.innerHTML = vendors.map(v => `
+    <div class="vendor-item ${current?.name === v.name ? 'selected' : ''}"
+         data-name="${v.name}" data-phone="${v.phone}">
+      <span class="vendor-name">${v.name}</span>
+      ${current?.name === v.name ? '<span class="vendor-check">✓</span>' : ''}
+    </div>
+  `).join('');
+  container.querySelectorAll('.vendor-item').forEach(el => {
+    el.addEventListener('click', () => {
+      setSelectedVendor({ name: el.dataset.name, phone: el.dataset.phone });
+      renderVendorList();
+    });
+  });
 }
