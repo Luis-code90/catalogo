@@ -40,17 +40,6 @@ export function getCartMessage() {
   return `${greeting}\n${addressLine}\n\n🛒 PEDIDO:\n${items}\n\n📦 Total fundas: ${totalFundas}\n💰 Total estimado: ${totalDisplay}`;
 }
 
-export function getNewClientMessage() {
-  const name     = document.getElementById('clientNewName').value.trim();
-  const business = document.getElementById('clientNewBusiness').value.trim();
-  const doc      = document.getElementById('clientNewDoc').value.trim();
-  const address  = document.getElementById('clientNewAddress').value.trim();
-  const phone    = document.getElementById('clientNewPhone').value.trim();
-  const hours    = document.getElementById('clientNewHours').value.trim();
-
-  return `🆕 ALTA CLIENTE:\n👤 Nombre: ${name}\n🏪 Razón social: ${business}\n🪪 Cédula/RUT: ${doc}\n📍 Dirección: ${address}\n📞 Teléfono: ${phone}\n🕐 Horario: ${hours}`;
-}
-
 export function doSendToWhatsApp() {
   saveOrder();
   const vendor = getSelectedVendor();
@@ -58,26 +47,27 @@ export function doSendToWhatsApp() {
   const isExisting = getIsExistingClient();
   const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
 
+  let message = '';
+
   if (!isExisting) {
-    const altaMsg = getNewClientMessage();
-    const altaUrl = isMobile
-      ? `https://wa.me/${phone}?text=${encodeURIComponent(altaMsg)}`
-      : `https://web.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(altaMsg)}`;
-    window.open(altaUrl, '_blank');
-    setTimeout(() => {
-      const pedidoMsg = getCartMessage();
-      const pedidoUrl = isMobile
-        ? `https://wa.me/${phone}?text=${encodeURIComponent(pedidoMsg)}`
-        : `https://web.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(pedidoMsg)}`;
-      window.open(pedidoUrl, '_blank');
-    }, 1500);
+    const name     = document.getElementById('clientNewName').value.trim();
+    const business = document.getElementById('clientNewBusiness').value.trim();
+    const doc      = document.getElementById('clientNewDoc').value.trim();
+    const address  = document.getElementById('clientNewAddress').value.trim();
+    const phone_c  = document.getElementById('clientNewPhone').value.trim();
+    const hours    = document.getElementById('clientNewHours').value.trim();
+
+    const altaMsg = `🆕 ALTA CLIENTE:\n👤 Nombre: ${name}\n🏪 Razón social: ${business}\n🪪 Cédula/RUT: ${doc}\n📍 Dirección: ${address}\n📞 Teléfono: ${phone_c}\n🕐 Horario: ${hours}`;
+    message = `${altaMsg}\n\n${getCartMessage()}`;
   } else {
-    const message = getCartMessage();
-    const url = isMobile
-      ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
-      : `https://web.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
+    message = getCartMessage();
   }
+
+  const url = isMobile
+    ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+    : `https://web.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
+
+  window.open(url, '_blank');
 }
 
 export function sendToWhatsApp() {
