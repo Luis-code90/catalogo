@@ -1,4 +1,4 @@
-import { getCART } from './state.js';
+import { getCART, getShowPrices } from './state.js';
 import { EMOJI, CAT } from './data.js';
 
 export function fmt(v) {
@@ -47,7 +47,7 @@ export function render(data) {
         <div class="card-size">${p.size} · ${p.units} u/funda</div>
         <div class="card-foot">
           <div>
-            <div class="c-price">${fmt(p.ppub)}</div>
+            <div class="c-price ${getShowPrices() ? '' : 'hidden-price'}">${fmt(p.ppub)}</div>
             <div class="c-plabel">precio sugerido</div>
           </div>
           <button class="c-btn">+</button>

@@ -14,3 +14,21 @@
   .fs-btn { padding:.9rem .5rem; }
   .fs-qty { font-size:1.6rem; }
 }
+
+@media (max-width: 600px) {
+  .modal {
+    margin: 1rem auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .modal-photo {
+    height: 220px;
+  }
+
+  .modal-close {
+    position: sticky;
+    top: 0.5rem;
+    z-index: 10;
+  }
+}

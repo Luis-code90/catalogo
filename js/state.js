@@ -10,7 +10,8 @@ let clientAddress = localStorage.getItem('mirlo_client_address') || '';
 let pendingSendAfterConfirm = false;
 
 let selectedVendor = JSON.parse(localStorage.getItem('mirlo_vendor') || 'null');
-let isExistingClient = null;
+let isExistingClient = !!localStorage.getItem('mirlo_client_name');
+let showPrices = localStorage.getItem('mirlo_show_prices') !== 'false';
 
 // Modal state
 let modalProduct = null;
@@ -40,6 +41,7 @@ export function getModalFundaSize() { return modalFundaSize; }
 export function getModalBottleMode() { return modalBottleMode; }
 export function getSelectedVendor() { return selectedVendor; }
 export function getIsExistingClient() { return isExistingClient; }
+export function getShowPrices() { return showPrices; }
 
 // ── SETTERS ──────────────────────────────────────────────
 export function setProducts(v) { PRODUCTS = v; }
@@ -57,3 +59,4 @@ export function setModalFundaSize(v) { modalFundaSize = v; }
 export function setModalBottleMode(v) { modalBottleMode = v; }
 export function setSelectedVendor(v) { selectedVendor = v; localStorage.setItem('mirlo_vendor', JSON.stringify(v)); }
 export function setIsExistingClient(v) { isExistingClient = v; }
+export function setShowPrices(v) { showPrices = v; localStorage.setItem('mirlo_show_prices', v); }

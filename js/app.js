@@ -1,10 +1,10 @@
-import { setProducts, getProducts, setIsAdult } from './state.js';
+import { setProducts, getProducts, setIsAdult, getShowPrices, setShowPrices } from './state.js';
 import { updateCartUI } from './cart.js';
 import { loadCart } from './storage.js';
 import { openModal, closeModal, closeBg, changeQty, addFromModal, selectFundaSize, selectBottleMode } from './modal.js';
 import { filter, setCat, hideAlcohol } from './filters.js';
 import { sendToWhatsApp } from './whatsapp.js';
-import { updateClientInfoLine, editClientInfo, confirmClientInfo, cancelClientInfo, setClientType, clientStepBack, clientStepNext } from './client.js';
+import { updateClientInfoLine, editClientInfo, confirmClientInfo, cancelClientInfo, setClientType, clientStepBack, clientStepNext, openClientModal } from './client.js';
 import { openOrderHistory, closeOrderHistory, closeHistoryBg } from './history.js';
 import { clearCart, addToCartById, removeFromCart } from './cart.js';
 
@@ -71,6 +71,15 @@ function openPromo() {
 function closePromo() {
   document.getElementById('promoOverlay').classList.remove('open');
   document.body.style.overflow = '';
+}
+
+// ── PRICE TOGGLE ─────────────────────────────────────────
+export function togglePrices() {
+  const newVal = !getShowPrices();
+  setShowPrices(newVal);
+  const btn = document.getElementById('togglePricesBtn');
+  btn.textContent = newVal ? '🙈 Ocultar precios' : '👁 Mostrar precios';
+  filter();
 }
 
 // ── CART TOGGLE ──────────────────────────────────────────
@@ -164,6 +173,7 @@ async function init() {
 init();
 
 // ── WINDOW EXPORTS (for inline onclick) ──────────────────
+window.togglePrices = togglePrices;
 window.confirmAge = confirmAge;
 window.closePromo = closePromo;
 window.toggleCart = toggleCart;
@@ -176,6 +186,16 @@ window.closeBg = closeBg;
 window.openOrderHistory = openOrderHistory;
 window.closeOrderHistory = closeOrderHistory;
 window.closeHistoryBg = closeHistoryBg;
+window.openClientModal = openClientModal;
+window.showStep = (step) => {
+  document.getElementById('clientSummary').style.display = 'none';
+  ['clientStep1','clientStep2A','clientStep2B','clientStep3'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  const target = document.getElementById('clientStep' + step);
+  if (target) target.style.display = 'block';
+};
 window.editClientInfo = editClientInfo;
 window.confirmClientInfo = confirmClientInfo;
 window.cancelClientInfo = cancelClientInfo;

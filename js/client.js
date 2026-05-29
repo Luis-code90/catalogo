@@ -24,11 +24,37 @@ export function updateClientInfoLine() {
   }
 }
 
-export function editClientInfo() {
-  setPendingSend(false);
-  showStep(1);
+export function openClientModal() {
+  const name = getClientName();
+  const business = getClientBusiness();
+  const address = getClientAddress();
+  const vendor = getSelectedVendor();
+
+  if (name && business && address && vendor) {
+    showSummary();
+  } else {
+    showStep(1);
+  }
   document.getElementById('clientOverlay').classList.add('open');
   document.body.style.overflow = 'hidden';
+}
+
+function showSummary() {
+  ['clientStep1','clientStep2A','clientStep2B','clientStep3','clientSummary'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  const summary = document.getElementById('clientSummary');
+  summary.style.display = 'block';
+  document.getElementById('summaryName').textContent = getClientName();
+  document.getElementById('summaryBusiness').textContent = getClientBusiness();
+  document.getElementById('summaryAddress').textContent = getClientAddress();
+  document.getElementById('summaryVendor').textContent = getSelectedVendor()?.name || '—';
+}
+
+export function editClientInfo() {
+  setPendingSend(false);
+  openClientModal();
 }
 
 export function setClientType(isExisting) {
@@ -111,8 +137,9 @@ export function cancelClientInfo() {
 }
 
 function showStep(step) {
-  ['clientStep1','clientStep2A','clientStep2B','clientStep3'].forEach(id => {
-    document.getElementById(id).style.display = 'none';
+  ['clientStep1','clientStep2A','clientStep2B','clientStep3','clientSummary'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
   });
   document.getElementById('clientStep' + step).style.display = 'block';
 }

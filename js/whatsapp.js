@@ -23,7 +23,7 @@ export function getCartMessage() {
     const qtyDisplay = p.cat === 'vino' || p.cat === 'sidra'
       ? p.units === 1
         ? `${item.qty} unidad${item.qty > 1 ? 'es' : ''}`
-        : `${item.qty} caja${item.qty > 1 ? 's' : ''} (${item.qty * 6} unidades)`
+        : `${item.qty} caja${item.qty > 1 ? 's' : ''} (${totalUnits} unidades)`
       : p.cat === 'cerveza'
         ? `${item.qty} funda${item.qty > 1 ? 's' : ''} de ${p.units} (${totalUnits} unidades)`
         : `${item.qty} fundas (${totalUnits} unidades)`;
@@ -37,7 +37,7 @@ export function getCartMessage() {
   }, 0);
   const totalDisplay = total > 0 ? fmt(total) : 'Consultar precio';
 
-  return `${greeting}\n${addressLine}\n\n🛒 PEDIDO:\n${items}\n\n📦 Total fundas: ${totalFundas}\n💰 Total estimado: ${totalDisplay}`;
+  return `${greeting}\n${addressLine}\n\n🛒 PEDIDO:\n${items}\n\n📦 Total paquetes: ${totalFundas}\n💰 Total estimado: ${totalDisplay}`;
 }
 
 export function doSendToWhatsApp() {

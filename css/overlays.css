@@ -131,6 +131,25 @@
 .client-btn.cancel { background:var(--light); color:var(--muted); border:1.5px solid var(--frost); }
 .client-btn.cancel:hover { background:var(--frost); }
 
+.summary-box {
+  background: var(--light);
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1rem 0;
+  text-align: left;
+}
+
+.summary-row {
+  padding: 0.4rem 0;
+  font-size: 0.95rem;
+  color: var(--text);
+  border-bottom: 1px solid var(--frost);
+}
+
+.summary-row:last-child {
+  border-bottom: none;
+}
+
 /* MODAL HISTORIAL */
 .history-overlay {
   display:none; position:fixed; inset:0; z-index:470;
