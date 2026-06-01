@@ -4,12 +4,10 @@ import {
   getClientAddress, setClientAddress,
   getPendingSend, setPendingSend,
   getSelectedVendor, setSelectedVendor,
-  getIsExistingClient, setIsExistingClient
+  getIsExistingClient, setIsExistingClient,
+  getVendors
 } from './state.js';
-import { CLIENTS } from './data.js';
 import { doSendToWhatsApp } from './whatsapp.js';
-
-const SLUG = 'mirlosas';
 
 export function updateClientInfoLine() {
   const el = document.getElementById('cartClientInfo');
@@ -146,7 +144,7 @@ function showStep(step) {
 
 function renderVendorList() {
   const select = document.getElementById('vendorSelect');
-  const vendors = CLIENTS[SLUG].vendors;
+  const vendors = getVendors();
   const current = getSelectedVendor();
   select.innerHTML = `<option value="">— Seleccioná tu vendedor —</option>` +
     vendors.map(v => `<option value="${v.phone}" ${current?.name === v.name ? 'selected' : ''}>${v.name}</option>`).join('');

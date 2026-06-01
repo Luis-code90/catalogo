@@ -16,19 +16,22 @@
 }
 
 @media (max-width: 600px) {
+  .overlay {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    align-items: flex-start;
+    padding: 1rem;
+  }
+
   .modal {
-    margin: 1rem auto;
+    width: 100%;
     max-height: none;
-    overflow: visible;
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 0 auto;
   }
 
   .modal-photo {
     height: 220px;
-  }
-
-  .modal-close {
-    position: sticky;
-    top: 0.5rem;
-    z-index: 10;
   }
 }

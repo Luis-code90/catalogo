@@ -1,4 +1,5 @@
-import { setProducts, getProducts, setIsAdult, getShowPrices, setShowPrices } from './state.js';
+import { setProducts, getProducts, setIsAdult, getShowPrices, setShowPrices, setVendedores } from './state.js';
+import { fetchProductos, fetchVendedores } from './supabase.js';
 import { updateCartUI } from './cart.js';
 import { loadCart } from './storage.js';
 import { openModal, closeModal, closeBg, changeQty, addFromModal, selectFundaSize, selectBottleMode } from './modal.js';
@@ -10,16 +11,21 @@ import { clearCart, addToCartById, removeFromCart } from './cart.js';
 
 // ── PRODUCT LOADING ──────────────────────────────────────
 async function loadProducts() {
-    try {
-        const response = await fetch('./data/products.json');
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        setProducts(data);
-        return true;
-    } catch (error) {
-        console.error('Error loading products:', error);
-        return false;
-    }
+  try {
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    const lastPart = pathParts[pathParts.length - 1];
+    const slug = (lastPart && lastPart !== 'index.html') ? lastPart : 'mirlosas';
+    const [productos, vendedores] = await Promise.all([
+      fetchProductos(slug),
+      fetchVendedores(slug)
+    ]);
+    setProducts(productos);
+    setVendedores(vendedores);
+    return true;
+  } catch (error) {
+    console.error('Error loading data:', error);
+    return false;
+  }
 }
 
 

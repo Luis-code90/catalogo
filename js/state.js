@@ -1,6 +1,7 @@
 // ── STATE ────────────────────────────────────────────────
 let PRODUCTS = [];
 let CART = [];
+let vendors = [];
 let activeCat = 'todos';
 let activeBrand = 'todas';
 let isAdult = false;
@@ -28,6 +29,7 @@ export const ADULT_CATS = ['cerveza', 'vino', 'sidra'];
 // ── GETTERS ──────────────────────────────────────────────
 export function getProducts() { return PRODUCTS; }
 export function getCART() { return CART; }
+export function getVendors() { return vendors; }
 export function getActiveCat() { return activeCat; }
 export function getActiveBrand() { return activeBrand; }
 export function isAdultUser() { return isAdult; }
@@ -46,6 +48,7 @@ export function getShowPrices() { return showPrices; }
 // ── SETTERS ──────────────────────────────────────────────
 export function setProducts(v) { PRODUCTS = v; }
 export function setCART(v) { CART = v; }
+export function setVendedores(v) { vendors = v; }
 export function setActiveCat(v) { activeCat = v; }
 export function setActiveBrand(v) { activeBrand = v; }
 export function setIsAdult(v) { isAdult = v; }
