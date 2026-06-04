@@ -50,6 +50,7 @@ export function openModal(p) {
     document.getElementById('modalFundaSelector').style.display = 'none';
     document.getElementById('modalBottleSelector').style.display = 'block';
     setModalBottleMode('unit');
+    document.getElementById('pfbLabel').textContent = 'PRECIO UNITARIO';
     document.querySelectorAll('#modalBottleSelector .fs-btn').forEach(b => b.classList.remove('active'));
     document.querySelector('#modalBottleSelector .fs-btn[data-mode="unit"]').classList.add('active');
     document.getElementById('mUnitsDisplay').textContent = '1';
@@ -121,9 +122,11 @@ export function selectBottleMode(mode) {
   document.querySelector(`#modalBottleSelector .fs-btn[data-mode="${mode}"]`).classList.add('active');
   const p = getModalProduct();
   if (mode === 'unit') {
+    document.getElementById('pfbLabel').textContent = 'PRECIO UNITARIO';
     document.getElementById('mUnitsDisplay').textContent = '1';
     document.getElementById('mPFunda').textContent = fmt(p.pcom);
   } else {
+    document.getElementById('pfbLabel').textContent = 'PRECIO POR CAJA';
     document.getElementById('mUnitsDisplay').textContent = '6';
     document.getElementById('mPFunda').textContent = fmt(p.pcom * 6);
   }

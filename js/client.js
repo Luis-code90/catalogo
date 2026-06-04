@@ -148,8 +148,11 @@ function renderVendorList() {
   const current = getSelectedVendor();
   select.innerHTML = `<option value="">— Seleccioná tu vendedor —</option>` +
     vendors.map(v => `<option value="${v.phone}" ${current?.name === v.name ? 'selected' : ''}>${v.name}</option>`).join('');
-  select.addEventListener('change', () => {
-    const vendor = vendors.find(v => v.phone === select.value);
+
+  const newSelect = select.cloneNode(true);
+  select.parentNode.replaceChild(newSelect, select);
+  newSelect.addEventListener('change', () => {
+    const vendor = vendors.find(v => v.phone === newSelect.value);
     if (vendor) setSelectedVendor({ name: vendor.name, phone: vendor.phone });
   });
 }
