@@ -20,9 +20,10 @@ let modalQty = 1;
 let modalFundaSize = 6;
 let modalBottleMode = 'unit';
 
+let whatsappPhone = '';
+
 // ── CONSTANTS ────────────────────────────────────────────
 export const CART_STORAGE_KEY = 'mirlo_cart';
-export const WHATSAPP_PHONE = '59897821688';
 export const MIN_ORDER_AMOUNT = 1000;
 export const ADULT_CATS = ['cerveza', 'vino', 'sidra'];
 
@@ -44,6 +45,7 @@ export function getModalBottleMode() { return modalBottleMode; }
 export function getSelectedVendor() { return selectedVendor; }
 export function getIsExistingClient() { return isExistingClient; }
 export function getShowPrices() { return showPrices; }
+export function getWhatsappPhone() { return whatsappPhone; }
 
 // ── SETTERS ──────────────────────────────────────────────
 export function setProducts(v) { PRODUCTS = v; }
@@ -63,3 +65,4 @@ export function setModalBottleMode(v) { modalBottleMode = v; }
 export function setSelectedVendor(v) { selectedVendor = v; localStorage.setItem('mirlo_vendor', JSON.stringify(v)); }
 export function setIsExistingClient(v) { isExistingClient = v; }
 export function setShowPrices(v) { showPrices = v; localStorage.setItem('mirlo_show_prices', v); }
+export function setWhatsappPhone(v) { whatsappPhone = v; }

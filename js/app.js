@@ -1,26 +1,26 @@
-import { setProducts, getProducts, setIsAdult, getShowPrices, setShowPrices, setVendedores } from './state.js';
-import { fetchProductos, fetchVendedores } from './supabase.js';
+import { setProducts, getProducts, setIsAdult, getShowPrices, setShowPrices, setVendedores, setWhatsappPhone } from './state.js';
+import { fetchProductos, fetchVendedores, fetchEmpresa } from './supabase.js';
 import { updateCartUI } from './cart.js';
 import { loadCart } from './storage.js';
 import { openModal, closeModal, closeBg, changeQty, addFromModal, selectFundaSize, selectBottleMode } from './modal.js';
 import { filter, setCat, hideAlcohol } from './filters.js';
 import { sendToWhatsApp } from './whatsapp.js';
-import { updateClientInfoLine, editClientInfo, confirmClientInfo, cancelClientInfo, setClientType, clientStepBack, clientStepNext, openClientModal } from './client.js';
+import { updateClientInfoLine, editClientInfo, confirmClientInfo, cancelClientInfo, setClientType, clientStepBack, clientStepNext, openClientModal, showStep } from './client.js';
 import { openOrderHistory, closeOrderHistory, closeHistoryBg } from './history.js';
 import { clearCart, addToCartById, removeFromCart } from './cart.js';
 
 // ── PRODUCT LOADING ──────────────────────────────────────
 async function loadProducts() {
   try {
-    const pathParts = window.location.pathname.split('/').filter(Boolean);
-    const lastPart = pathParts[pathParts.length - 1];
-    const slug = (lastPart && lastPart !== 'index.html') ? lastPart : 'mirlosas';
-    const [productos, vendedores] = await Promise.all([
+    const slug = window.location.pathname.split('/').filter(Boolean).find(p => p !== 'index.html') || 'mirlosas';
+    const [empresa, productos, vendedores] = await Promise.all([
+      fetchEmpresa(slug),
       fetchProductos(slug),
       fetchVendedores(slug)
     ]);
     setProducts(productos);
     setVendedores(vendedores);
+    setWhatsappPhone(empresa.whatsapp_phone);
     return true;
   } catch (error) {
     console.error('Error loading data:', error);
@@ -163,17 +163,19 @@ function setupEventListeners() {
 
 // ── INIT ─────────────────────────────────────────────────
 async function init() {
-    document.body.style.overflow = 'hidden';
-    const ok = await loadProducts();
-    if (!ok) {
-      showLoadError();
-      return;
-    }
-    loadCart();
-    updateClientInfoLine();
-    updateCartUI();
-    filter();
-    setupEventListeners();
+  document.body.style.overflow = 'hidden';
+  document.getElementById('loadingState').classList.add('show');
+  const ok = await loadProducts();
+  document.getElementById('loadingState').classList.remove('show');
+  if (!ok) {
+    showLoadError();
+    return;
+  }
+  loadCart();
+  updateClientInfoLine();
+  updateCartUI();
+  filter();
+  setupEventListeners();
 }
 
 init();
@@ -193,15 +195,7 @@ window.openOrderHistory = openOrderHistory;
 window.closeOrderHistory = closeOrderHistory;
 window.closeHistoryBg = closeHistoryBg;
 window.openClientModal = openClientModal;
-window.showStep = (step) => {
-  document.getElementById('clientSummary').style.display = 'none';
-  ['clientStep1','clientStep2A','clientStep2B','clientStep3'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = 'none';
-  });
-  const target = document.getElementById('clientStep' + step);
-  if (target) target.style.display = 'block';
-};
+window.showStep = showStep;
 window.editClientInfo = editClientInfo;
 window.confirmClientInfo = confirmClientInfo;
 window.cancelClientInfo = cancelClientInfo;

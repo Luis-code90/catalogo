@@ -14,20 +14,20 @@ async function supabaseGet(table, params) {
   return await res.json();
 }
 
-export async function fetchEmpresaId(slug) {
+export async function fetchEmpresa(slug) {
   const data = await supabaseGet('empresas', {
     slug: `eq.${slug}`,
-    select: 'id',
+    select: 'id,whatsapp_phone',
     limit: 1
   });
   if (!data.length) throw new Error(`Empresa no encontrada: ${slug}`);
-  return data[0].id;
+  return data[0];
 }
 
 export async function fetchProductos(empresaSlug) {
-  const empresaId = await fetchEmpresaId(empresaSlug);
+  const empresa = await fetchEmpresa(empresaSlug);
   return await supabaseGet('productos', {
-    empresa_id: `eq.${empresaId}`,
+    empresa_id: `eq.${empresa.id}`,
     activo: 'eq.true',
     select: '*',
     order: 'cat,brand,name'
@@ -35,9 +35,9 @@ export async function fetchProductos(empresaSlug) {
 }
 
 export async function fetchVendedores(empresaSlug) {
-  const empresaId = await fetchEmpresaId(empresaSlug);
+  const empresa = await fetchEmpresa(empresaSlug);
   return await supabaseGet('vendedores', {
-    empresa_id: `eq.${empresaId}`,
+    empresa_id: `eq.${empresa.id}`,
     activo: 'eq.true',
     select: '*'
   });

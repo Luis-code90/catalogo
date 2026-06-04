@@ -134,12 +134,13 @@ export function cancelClientInfo() {
   document.body.style.overflow = '';
 }
 
-function showStep(step) {
+export function showStep(step) {
   ['clientStep1','clientStep2A','clientStep2B','clientStep3','clientSummary'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
-  document.getElementById('clientStep' + step).style.display = 'block';
+  const target = document.getElementById('clientStep' + step);
+  if (target) target.style.display = 'block';
 }
 
 function renderVendorList() {

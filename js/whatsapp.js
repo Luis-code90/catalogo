@@ -1,6 +1,6 @@
 import {
   getCART, getClientName, getClientBusiness, getClientAddress,
-  getPendingSend, setPendingSend, WHATSAPP_PHONE, getSelectedVendor, getIsExistingClient
+  getPendingSend, setPendingSend, getWhatsappPhone, getSelectedVendor, getIsExistingClient
 } from './state.js';
 import { getPriceFunda } from './cart.js';
 import { fmt } from './ui.js';
@@ -43,7 +43,7 @@ export function getCartMessage() {
 export function doSendToWhatsApp() {
   saveOrder();
   const vendor = getSelectedVendor();
-  const phone = vendor ? vendor.phone : WHATSAPP_PHONE;
+  const phone = vendor ? vendor.phone : getWhatsappPhone();
   const isExisting = getIsExistingClient();
   const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
 
