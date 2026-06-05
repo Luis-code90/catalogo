@@ -1,3 +1,4 @@
+import { initAuth, handleLogin, handleRegister, handleLogout, showAuthLogin, showAuthRegister } from './auth.js';
 import { setProducts, getProducts, setIsAdult, getShowPrices, setShowPrices, setVendedores, setWhatsappPhone } from './state.js';
 import { fetchProductos, fetchVendedores, fetchEmpresa } from './supabase.js';
 import { updateCartUI } from './cart.js';
@@ -165,12 +166,18 @@ function setupEventListeners() {
 async function init() {
   document.body.style.overflow = 'hidden';
   document.getElementById('loadingState').classList.add('show');
+
   const ok = await loadProducts();
   document.getElementById('loadingState').classList.remove('show');
+
   if (!ok) {
     showLoadError();
     return;
   }
+
+  const authed = await initAuth();
+  if (!authed) return;
+
   loadCart();
   updateClientInfoLine();
   updateCartUI();
@@ -204,3 +211,8 @@ window.clientStepBack = clientStepBack;
 window.clientStepNext = clientStepNext;
 window.filter = filter;
 window.init = init;
+window.handleLogin = handleLogin;
+window.handleRegister = handleRegister;
+window.handleLogout = handleLogout;
+window.showAuthLogin = showAuthLogin;
+window.showAuthRegister = showAuthRegister;

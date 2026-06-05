@@ -1,44 +1,77 @@
+import { createClient } from '@supabase/supabase-js';
+
 const SUPABASE_URL = 'https://bulvsefhaadhbmwcdncr.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1bHZzZWZoYWFkaGJtd2NkbmNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyNjA5MDMsImV4cCI6MjA5NTgzNjkwM30.L7HmT8RC3W0cwo5M9C_pvNH1IHCqlTol1TiqWiGOXsY';
 
-async function supabaseGet(table, params) {
-  const url = new URL(`${SUPABASE_URL}/rest/v1/${table}`);
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  const res = await fetch(url.toString(), {
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`
-    }
-  });
-  if (!res.ok) throw new Error(`Supabase error ${res.status}`);
-  return await res.json();
-}
+export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// ── EMPRESA ──────────────────────────────────────────────
 export async function fetchEmpresa(slug) {
-  const data = await supabaseGet('empresas', {
-    slug: `eq.${slug}`,
-    select: 'id,whatsapp_phone',
-    limit: 1
-  });
-  if (!data.length) throw new Error(`Empresa no encontrada: ${slug}`);
-  return data[0];
+  const { data, error } = await supabase
+    .from('empresas')
+    .select('id, whatsapp_phone')
+    .eq('slug', slug)
+    .single();
+  if (error) throw new Error(`Empresa no encontrada: ${slug}`);
+  return data;
 }
 
+// ── PRODUCTOS ─────────────────────────────────────────────
 export async function fetchProductos(empresaSlug) {
   const empresa = await fetchEmpresa(empresaSlug);
-  return await supabaseGet('productos', {
-    empresa_id: `eq.${empresa.id}`,
-    activo: 'eq.true',
-    select: '*',
-    order: 'cat,brand,name'
-  });
+  const { data, error } = await supabase
+    .from('productos')
+    .select('*')
+    .eq('empresa_id', empresa.id)
+    .eq('activo', true)
+    .order('cat')
+    .order('brand')
+    .order('name');
+  if (error) throw new Error(error.message);
+  return data;
 }
 
+// ── VENDEDORES ────────────────────────────────────────────
 export async function fetchVendedores(empresaSlug) {
   const empresa = await fetchEmpresa(empresaSlug);
-  return await supabaseGet('vendedores', {
-    empresa_id: `eq.${empresa.id}`,
-    activo: 'eq.true',
-    select: '*'
-  });
+  const { data, error } = await supabase
+    .from('vendedores')
+    .select('*')
+    .eq('empresa_id', empresa.id)
+    .eq('activo', true);
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+// ── AUTH ──────────────────────────────────────────────────
+export async function registerUser(email, password) {
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function loginUser(email, password) {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function logoutUser() {
+  const { error } = await supabase.auth.signOut();
+  if (error) throw new Error(error.message);
+}
+
+export async function getCurrentUser() {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user;
+}
+
+export async function getClienteByEmail(email) {
+  const { data, error } = await supabase
+    .from('clientes')
+    .select('*')
+    .eq('email', email)
+    .single();
+  if (error) return null;
+  return data;
 }

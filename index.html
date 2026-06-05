@@ -13,6 +13,13 @@
 <link rel="stylesheet" href="css/cart.css">
 <link rel="stylesheet" href="css/overlays.css">
 <link rel="stylesheet" href="css/responsive.css">
+<script type="importmap">
+{
+  "imports": {
+    "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"
+  }
+}
+</script>
 </head>
 <body>
 
@@ -29,6 +36,46 @@
     <div class="age-warning" id="ageWarning">
       ⚠️ El consumo de alcohol está prohibido para menores de edad. Solo podrás ver productos sin alcohol.
     </div>
+  </div>
+</div>
+
+<!-- AUTH OVERLAY -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-box">
+
+    <!-- LOGIN -->
+    <div id="authLogin">
+      <div class="auth-icon">🔐</div>
+      <div class="auth-title">Iniciar sesión</div>
+      <p class="auth-sub">Accedé a tu cuenta para hacer pedidos</p>
+      <input class="client-input" id="loginEmail" type="email" placeholder="Tu email">
+      <input class="client-input" id="loginPassword" type="password" placeholder="Tu contraseña">
+      <div class="auth-error" id="loginError"></div>
+      <button class="client-btn confirm" id="loginBtn" onclick="handleLogin()">Entrar</button>
+      <p class="auth-switch">¿No tenés cuenta? <a href="#" onclick="showAuthRegister()">Registrate</a></p>
+    </div>
+
+    <!-- REGISTRO -->
+    <div id="authRegister" style="display:none">
+      <div class="auth-icon">📝</div>
+      <div class="auth-title">Crear cuenta</div>
+      <p class="auth-sub">Registrate para hacer pedidos</p>
+      <input class="client-input" id="registerEmail" type="email" placeholder="Tu email">
+      <input class="client-input" id="registerPassword" type="password" placeholder="Contraseña (mín. 6 caracteres)">
+      <input class="client-input" id="registerPassword2" type="password" placeholder="Repetir contraseña">
+      <div class="auth-error" id="registerError"></div>
+      <button class="client-btn confirm" id="registerBtn" onclick="handleRegister()">Crear cuenta</button>
+      <p class="auth-switch">¿Ya tenés cuenta? <a href="#" onclick="showAuthLogin()">Iniciá sesión</a></p>
+    </div>
+
+    <!-- PENDIENTE -->
+    <div id="authPending" style="display:none">
+      <div class="auth-icon">⏳</div>
+      <div class="auth-title">Cuenta en revisión</div>
+      <p class="auth-sub">Tu cuenta está siendo verificada. Te avisaremos cuando esté activa.</p>
+      <button class="client-btn cancel" onclick="handleLogout()">Cerrar sesión</button>
+    </div>
+
   </div>
 </div>
 
