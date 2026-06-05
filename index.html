@@ -63,6 +63,7 @@
       <input class="client-input" id="registerEmail" type="email" placeholder="Tu email">
       <input class="client-input" id="registerPassword" type="password" placeholder="Contraseña (mín. 6 caracteres)">
       <input class="client-input" id="registerPassword2" type="password" placeholder="Repetir contraseña">
+      <input class="client-input" id="registerBirthdate" type="date" placeholder="Fecha de nacimiento">
       <div class="auth-error" id="registerError"></div>
       <button class="client-btn confirm" id="registerBtn" onclick="handleRegister()">Crear cuenta</button>
       <p class="auth-switch">¿Ya tenés cuenta? <a href="#" onclick="showAuthLogin()">Iniciá sesión</a></p>
@@ -100,6 +101,10 @@
   </div>
   <button id="togglePricesBtn" onclick="togglePrices()">🙈 Ocultar precios</button>
   <div class="validity">Vigencia:<br> 01 / 05 / 2026</div>
+  <div class="header-user" id="headerUser" style="display:none">
+    <span class="header-user-email" id="headerUserEmail"></span>
+    <button class="header-logout-btn" onclick="handleLogout()">Cerrar sesión</button>
+  </div>
 </header>
 
 <!-- HERO -->

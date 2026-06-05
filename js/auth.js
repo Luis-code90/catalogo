@@ -1,4 +1,14 @@
-import { registerUser, loginUser, logoutUser, getCurrentUser, getClienteByEmail } from './supabase.js';
+import { registerUser, loginUser, logoutUser, getCurrentUser, getClienteByEmail, updateClienteFechaNacimiento } from './supabase.js';
+import { setIsAdult } from './state.js';
+
+function calcularEdad(fechaNacimiento) {
+  const hoy = new Date();
+  const nac = new Date(fechaNacimiento);
+  let edad = hoy.getFullYear() - nac.getFullYear();
+  const m = hoy.getMonth() - nac.getMonth();
+  if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
+  return edad;
+}
 
 export async function initAuth() {
   const user = await getCurrentUser();
@@ -11,6 +21,24 @@ export async function initAuth() {
     showAuthPending();
     return false;
   }
+
+  // Mostrar info en header
+  const headerUser = document.getElementById('headerUser');
+  const headerUserEmail = document.getElementById('headerUserEmail');
+  if (headerUser) {
+    headerUser.style.display = 'flex';
+    headerUserEmail.textContent = user.email;
+  }
+
+  // Determinar si es mayor de edad
+  if (cliente.fecha_nacimiento) {
+    const edad = calcularEdad(cliente.fecha_nacimiento);
+    setIsAdult(edad >= 18);
+    // Ocultar age gate si ya sabemos la edad
+    const ageOverlay = document.getElementById('ageOverlay');
+    if (ageOverlay) ageOverlay.style.display = 'none';
+  }
+
   return true;
 }
 
@@ -58,6 +86,7 @@ export async function handleLogin() {
 
   btn.textContent = 'Entrando...';
   btn.disabled = true;
+  errorEl.textContent = '';
 
   try {
     await loginUser(email, password);
@@ -66,6 +95,23 @@ export async function handleLogin() {
       showAuthPending();
       return;
     }
+
+    // Mostrar info en header
+    const headerUser = document.getElementById('headerUser');
+    const headerUserEmail = document.getElementById('headerUserEmail');
+    if (headerUser) {
+      headerUser.style.display = 'flex';
+      headerUserEmail.textContent = email;
+    }
+
+    // Determinar edad
+    if (cliente.fecha_nacimiento) {
+      const edad = calcularEdad(cliente.fecha_nacimiento);
+      setIsAdult(edad >= 18);
+      const ageOverlay = document.getElementById('ageOverlay');
+      if (ageOverlay) ageOverlay.style.display = 'none';
+    }
+
     hideAuthOverlay();
   } catch (e) {
     errorEl.textContent = 'Email o contraseña incorrectos';
@@ -79,10 +125,11 @@ export async function handleRegister() {
   const email = document.getElementById('registerEmail').value.trim();
   const password = document.getElementById('registerPassword').value;
   const password2 = document.getElementById('registerPassword2').value;
+  const birthdate = document.getElementById('registerBirthdate').value;
   const errorEl = document.getElementById('registerError');
   const btn = document.getElementById('registerBtn');
 
-  if (!email || !password || !password2) {
+  if (!email || !password || !password2 || !birthdate) {
     errorEl.textContent = 'Completá todos los campos';
     return;
   }
@@ -97,11 +144,19 @@ export async function handleRegister() {
     return;
   }
 
+  const edad = calcularEdad(birthdate);
+  if (edad < 13) {
+    errorEl.textContent = 'Debés tener al menos 13 años para registrarte';
+    return;
+  }
+
   btn.textContent = 'Creando cuenta...';
   btn.disabled = true;
+  errorEl.textContent = '';
 
   try {
     await registerUser(email, password);
+    await updateClienteFechaNacimiento(email, birthdate);
     showAuthPending();
   } catch (e) {
     errorEl.textContent = e.message || 'Error al crear la cuenta';
@@ -113,5 +168,7 @@ export async function handleRegister() {
 
 export async function handleLogout() {
   await logoutUser();
+  const headerUser = document.getElementById('headerUser');
+  if (headerUser) headerUser.style.display = 'none';
   showAuthOverlay();
 }

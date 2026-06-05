@@ -179,3 +179,34 @@ main { padding:1.8rem 2rem 4rem; max-width:1480px; margin:0 auto; }
   color: var(--muted);
   font-size: 0.9rem;
 }
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.header-user-email {
+  font-size: 0.8rem;
+  color: var(--muted);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-logout-btn {
+  background: none;
+  border: 1px solid var(--muted);
+  color: var(--muted);
+  border-radius: 20px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.header-logout-btn:hover {
+  border-color: var(--teal);
+  color: var(--teal);
+}

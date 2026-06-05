@@ -75,3 +75,11 @@ export async function getClienteByEmail(email) {
   if (error) return null;
   return data;
 }
+
+export async function updateClienteFechaNacimiento(email, fechaNacimiento) {
+  const { error } = await supabase
+    .from('clientes')
+    .update({ fecha_nacimiento: fechaNacimiento })
+    .eq('email', email);
+  if (error) throw new Error(error.message);
+}
