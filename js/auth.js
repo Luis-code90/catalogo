@@ -1,5 +1,12 @@
-import { registerUser, loginUser, logoutUser, getCurrentUser, getClienteByEmail, updateClienteFechaNacimiento } from './supabase.js';
-import { setIsAdult } from './state.js';
+import { 
+  registerUser, loginUser, logoutUser, 
+  getCurrentUser, getPerfilByUserId,
+  createPerfil, createComercio, createVendedorAsignado,
+  fetchEmpresa
+} from './supabase.js';
+import { setIsAdult, setCurrentUser, setCurrentPerfil, setUserRole, getVendors } from './state.js';
+import { filter } from './filters.js';
+import { hideAlcohol } from './filters.js';
 
 function calcularEdad(fechaNacimiento) {
   const hoy = new Date();
@@ -12,34 +19,50 @@ function calcularEdad(fechaNacimiento) {
 
 export async function initAuth() {
   const user = await getCurrentUser();
+
   if (!user) {
+    setUserRole('guest');
+    updateHeaderUI();
     showAuthOverlay();
-    return false;
-  }
-  const cliente = await getClienteByEmail(user.email);
-  if (!cliente || cliente.estado === 'pendiente') {
-    showAuthPending();
-    return false;
+    return 'guest';
   }
 
-  // Mostrar info en header
+  const perfil = await getPerfilByUserId(user.id);
+
+  if (!perfil || perfil.nombre === '') {
+    setUserRole('pending');
+    setCurrentUser(user);
+    showAuthPending();
+    return 'pending';
+  }
+
+  setCurrentUser(user);
+  setCurrentPerfil(perfil);
+  setUserRole('authenticated');
+
+  if (perfil.fecha_nacimiento) {
+    const edad = calcularEdad(perfil.fecha_nacimiento);
+    setIsAdult(edad >= 18);
+    if (edad < 18) hideAlcohol();
+  } else {
+    setIsAdult(true);
+  }
+
+  updateHeaderUI(user.email);
+  hideAuthOverlay();
+  return 'authenticated';
+}
+
+export function updateHeaderUI(email = null) {
   const headerUser = document.getElementById('headerUser');
   const headerUserEmail = document.getElementById('headerUserEmail');
-  if (headerUser) {
+  if (!headerUser) return;
+  if (email) {
     headerUser.style.display = 'flex';
-    headerUserEmail.textContent = user.email;
+    headerUserEmail.textContent = email;
+  } else {
+    headerUser.style.display = 'none';
   }
-
-  // Determinar si es mayor de edad
-  if (cliente.fecha_nacimiento) {
-    const edad = calcularEdad(cliente.fecha_nacimiento);
-    setIsAdult(edad >= 18);
-    // Ocultar age gate si ya sabemos la edad
-    const ageOverlay = document.getElementById('ageOverlay');
-    if (ageOverlay) ageOverlay.style.display = 'none';
-  }
-
-  return true;
 }
 
 export function showAuthOverlay() {
@@ -63,6 +86,15 @@ export function showAuthRegister() {
   document.getElementById('authLogin').style.display = 'none';
   document.getElementById('authRegister').style.display = 'block';
   document.getElementById('authPending').style.display = 'none';
+  populateRegisterVendors();
+}
+
+function populateRegisterVendors() {
+  const select = document.getElementById('registerVendor');
+  const vendors = getVendors();
+  if (!select || !vendors.length) return;
+  select.innerHTML = `<option value="">— Seleccioná tu vendedor (opcional) —</option>` +
+    vendors.map(v => `<option value="${v.id}">${v.name}</option>`).join('');
 }
 
 export function showAuthPending() {
@@ -89,30 +121,32 @@ export async function handleLogin() {
   errorEl.textContent = '';
 
   try {
-    await loginUser(email, password);
-    const cliente = await getClienteByEmail(email);
-    if (!cliente || cliente.estado === 'pendiente') {
+    const { user } = await loginUser(email, password);
+    const perfil = await getPerfilByUserId(user.id);
+
+    if (!perfil || perfil.nombre === '') {
+      setCurrentUser(user);
+      setUserRole('pending');
       showAuthPending();
       return;
     }
 
-    // Mostrar info en header
-    const headerUser = document.getElementById('headerUser');
-    const headerUserEmail = document.getElementById('headerUserEmail');
-    if (headerUser) {
-      headerUser.style.display = 'flex';
-      headerUserEmail.textContent = email;
-    }
+    setCurrentUser(user);
+    setCurrentPerfil(perfil);
+    setUserRole('authenticated');
 
-    // Determinar edad
-    if (cliente.fecha_nacimiento) {
-      const edad = calcularEdad(cliente.fecha_nacimiento);
+    if (perfil.fecha_nacimiento) {
+      const edad = calcularEdad(perfil.fecha_nacimiento);
       setIsAdult(edad >= 18);
-      const ageOverlay = document.getElementById('ageOverlay');
-      if (ageOverlay) ageOverlay.style.display = 'none';
+      if (edad < 18) hideAlcohol();
+    } else {
+      setIsAdult(true);
     }
 
+    updateHeaderUI(email);
     hideAuthOverlay();
+    filter();
+
   } catch (e) {
     errorEl.textContent = 'Email o contraseña incorrectos';
   } finally {
@@ -126,11 +160,19 @@ export async function handleRegister() {
   const password = document.getElementById('registerPassword').value;
   const password2 = document.getElementById('registerPassword2').value;
   const birthdate = document.getElementById('registerBirthdate').value;
+  const nombre = document.getElementById('registerNombre').value.trim();
+  const apellido = document.getElementById('registerApellido').value.trim();
+  const telefono = document.getElementById('registerTelefono').value.trim();
+  const nombreComercial = document.getElementById('registerComercio').value.trim();
+  const rut = document.getElementById('registerRut').value.trim();
+  const direccion = document.getElementById('registerDireccion').value.trim();
+  const horario = document.getElementById('registerHorario').value.trim();
+  const vendorSelect = document.getElementById('registerVendor');
   const errorEl = document.getElementById('registerError');
   const btn = document.getElementById('registerBtn');
 
-  if (!email || !password || !password2 || !birthdate) {
-    errorEl.textContent = 'Completá todos los campos';
+  if (!email || !password || !password2 || !birthdate || !nombre || !apellido || !nombreComercial || !direccion) {
+    errorEl.textContent = 'Completá todos los campos obligatorios';
     return;
   }
 
@@ -155,8 +197,23 @@ export async function handleRegister() {
   errorEl.textContent = '';
 
   try {
-    await registerUser(email, password);
-    await updateClienteFechaNacimiento(email, birthdate);
+    const { user } = await registerUser(email, password);
+    
+    const slug = window.location.pathname.split('/').filter(Boolean).find(p => p !== 'index.html') || 'mirlosas';
+    const empresa = await fetchEmpresa(slug);
+
+    await createPerfil(user.id, email, empresa.id, {
+      nombre, apellido, telefono, fechaNacimiento: birthdate
+    });
+
+    await createComercio(user.id, {
+      nombreComercial, rut, direccion, horario
+    });
+
+    if (vendorSelect && vendorSelect.value) {
+      await createVendedorAsignado(user.id, vendorSelect.value);
+    }
+
     showAuthPending();
   } catch (e) {
     errorEl.textContent = e.message || 'Error al crear la cuenta';
@@ -166,9 +223,19 @@ export async function handleRegister() {
   }
 }
 
+export function enterAsGuest() {
+  hideAuthOverlay();
+  const ageOverlay = document.getElementById('ageOverlay');
+  if (ageOverlay) ageOverlay.style.display = 'flex';
+}
+
 export async function handleLogout() {
   await logoutUser();
-  const headerUser = document.getElementById('headerUser');
-  if (headerUser) headerUser.style.display = 'none';
-  showAuthOverlay();
+  setCurrentUser(null);
+  setCurrentPerfil(null);
+  setUserRole('guest');
+  updateHeaderUI();
+  document.getElementById('authOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  showAuthLogin();
 }

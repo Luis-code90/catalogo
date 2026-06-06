@@ -1,4 +1,4 @@
-import { initAuth, handleLogin, handleRegister, handleLogout, showAuthLogin, showAuthRegister } from './auth.js';
+import { initAuth, handleLogin, handleRegister, handleLogout, showAuthLogin, showAuthRegister, enterAsGuest } from './auth.js';
 import { setProducts, getProducts, setIsAdult, getShowPrices, setShowPrices, setVendedores, setWhatsappPhone } from './state.js';
 import { fetchProductos, fetchVendedores, fetchEmpresa } from './supabase.js';
 import { updateCartUI } from './cart.js';
@@ -175,14 +175,16 @@ async function init() {
     return;
   }
 
-  const authed = await initAuth();
-  if (!authed) return;
+  const role = await initAuth();
 
   loadCart();
   updateClientInfoLine();
   updateCartUI();
   filter();
   setupEventListeners();
+
+  // Guest flow handled in initAuth: shows auth overlay with guest entry button
+  // Age gate will be triggered by enterAsGuest()
 }
 
 init();
@@ -216,3 +218,4 @@ window.handleRegister = handleRegister;
 window.handleLogout = handleLogout;
 window.showAuthLogin = showAuthLogin;
 window.showAuthRegister = showAuthRegister;
+window.enterAsGuest = enterAsGuest;

@@ -52,6 +52,7 @@
       <input class="client-input" id="loginPassword" type="password" placeholder="Tu contraseña">
       <div class="auth-error" id="loginError"></div>
       <button class="client-btn confirm" id="loginBtn" onclick="handleLogin()">Entrar</button>
+      <button class="client-btn cancel" onclick="enterAsGuest()" style="margin-top:0.25rem">Entrar como invitado</button>
       <p class="auth-switch">¿No tenés cuenta? <a href="#" onclick="showAuthRegister()">Registrate</a></p>
     </div>
 
@@ -59,11 +60,28 @@
     <div id="authRegister" style="display:none">
       <div class="auth-icon">📝</div>
       <div class="auth-title">Crear cuenta</div>
-      <p class="auth-sub">Registrate para hacer pedidos</p>
-      <input class="client-input" id="registerEmail" type="email" placeholder="Tu email">
-      <input class="client-input" id="registerPassword" type="password" placeholder="Contraseña (mín. 6 caracteres)">
-      <input class="client-input" id="registerPassword2" type="password" placeholder="Repetir contraseña">
-      <input class="client-input" id="registerBirthdate" type="date" placeholder="Fecha de nacimiento">
+      <p class="auth-sub">Completá tus datos para registrarte</p>
+      
+      <p class="auth-section-label">Datos personales</p>
+      <input class="client-input" id="registerNombre" type="text" placeholder="Nombre *">
+      <input class="client-input" id="registerApellido" type="text" placeholder="Apellido *">
+      <input class="client-input" id="registerEmail" type="email" placeholder="Email *">
+      <input class="client-input" id="registerTelefono" type="tel" placeholder="Teléfono">
+      <input class="client-input" id="registerBirthdate" type="date" placeholder="Fecha de nacimiento *">
+      <input class="client-input" id="registerPassword" type="password" placeholder="Contraseña (mín. 6 caracteres) *">
+      <input class="client-input" id="registerPassword2" type="password" placeholder="Repetir contraseña *">
+
+      <p class="auth-section-label">Datos del comercio</p>
+      <input class="client-input" id="registerComercio" type="text" placeholder="Nombre del comercio *">
+      <input class="client-input" id="registerRut" type="text" placeholder="RUT o Cédula">
+      <input class="client-input" id="registerDireccion" type="text" placeholder="Dirección *">
+      <input class="client-input" id="registerHorario" type="text" placeholder="Horario de recepción (ej: Lun-Vie 9-18)">
+
+      <p class="auth-section-label">Tu vendedor</p>
+      <select class="client-input" id="registerVendor">
+        <option value="">— Seleccioná tu vendedor (opcional) —</option>
+      </select>
+
       <div class="auth-error" id="registerError"></div>
       <button class="client-btn confirm" id="registerBtn" onclick="handleRegister()">Crear cuenta</button>
       <p class="auth-switch">¿Ya tenés cuenta? <a href="#" onclick="showAuthLogin()">Iniciá sesión</a></p>

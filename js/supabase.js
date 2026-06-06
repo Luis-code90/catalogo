@@ -66,20 +66,76 @@ export async function getCurrentUser() {
   return user;
 }
 
-export async function getClienteByEmail(email) {
+// ── PERFILES ──────────────────────────────────────────────
+export async function getPerfilByUserId(userId) {
   const { data, error } = await supabase
-    .from('clientes')
-    .select('*')
-    .eq('email', email)
+    .from('perfiles')
+    .select('*, comercios(*), vendedores_asignados(*)')
+    .eq('id', userId)
     .single();
   if (error) return null;
   return data;
 }
 
-export async function updateClienteFechaNacimiento(email, fechaNacimiento) {
+export async function createPerfil(userId, email, empresaId, datos) {
+  const { data, error } = await supabase
+    .from('perfiles')
+    .insert({
+      id: userId,
+      email,
+      empresa_id: empresaId,
+      nombre: datos.nombre,
+      apellido: datos.apellido,
+      telefono: datos.telefono,
+      fecha_nacimiento: datos.fechaNacimiento
+    })
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function createComercio(perfilId, datos) {
+  const { data, error } = await supabase
+    .from('comercios')
+    .insert({
+      perfil_id: perfilId,
+      nombre_comercial: datos.nombreComercial,
+      rut: datos.rut,
+      direccion: datos.direccion,
+      horario_recepcion: datos.horario
+    })
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function createVendedorAsignado(perfilId, vendedorId) {
+  const { data, error } = await supabase
+    .from('vendedores_asignados')
+    .insert({
+      perfil_id: perfilId,
+      vendedor_id: vendedorId
+    })
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function updatePerfil(userId, datos) {
   const { error } = await supabase
-    .from('clientes')
-    .update({ fecha_nacimiento: fechaNacimiento })
-    .eq('email', email);
+    .from('perfiles')
+    .update(datos)
+    .eq('id', userId);
+  if (error) throw new Error(error.message);
+}
+
+export async function updateComercio(perfilId, datos) {
+  const { error } = await supabase
+    .from('comercios')
+    .update(datos)
+    .eq('perfil_id', perfilId);
   if (error) throw new Error(error.message);
 }

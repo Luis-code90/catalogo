@@ -10,6 +10,10 @@ let clientBusiness = localStorage.getItem('mirlo_client_business') || '';
 let clientAddress = localStorage.getItem('mirlo_client_address') || '';
 let pendingSendAfterConfirm = false;
 
+let currentUser = null;
+let currentPerfil = null;
+let userRole = 'guest'; // 'guest' | 'pending' | 'authenticated'
+
 let selectedVendor = JSON.parse(localStorage.getItem('mirlo_vendor') || 'null');
 let isExistingClient = !!localStorage.getItem('mirlo_client_name');
 let showPrices = localStorage.getItem('mirlo_show_prices') !== 'false';
@@ -46,6 +50,9 @@ export function getSelectedVendor() { return selectedVendor; }
 export function getIsExistingClient() { return isExistingClient; }
 export function getShowPrices() { return showPrices; }
 export function getWhatsappPhone() { return whatsappPhone; }
+export function getCurrentUser() { return currentUser; }
+export function getCurrentPerfil() { return currentPerfil; }
+export function getUserRole() { return userRole; }
 
 // ── SETTERS ──────────────────────────────────────────────
 export function setProducts(v) { PRODUCTS = v; }
@@ -66,3 +73,6 @@ export function setSelectedVendor(v) { selectedVendor = v; localStorage.setItem(
 export function setIsExistingClient(v) { isExistingClient = v; }
 export function setShowPrices(v) { showPrices = v; localStorage.setItem('mirlo_show_prices', v); }
 export function setWhatsappPhone(v) { whatsappPhone = v; }
+export function setCurrentUser(v) { currentUser = v; }
+export function setCurrentPerfil(v) { currentPerfil = v; }
+export function setUserRole(v) { userRole = v; }
