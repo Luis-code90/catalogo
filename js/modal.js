@@ -1,7 +1,6 @@
 import {
   getCART, getModalProduct, getModalQty, getModalFundaSize, getModalBottleMode,
-  setModalProduct, setModalQty, setModalFundaSize, setModalBottleMode,
-  getShowPrices
+  setModalProduct, setModalQty, setModalFundaSize, setModalBottleMode
 } from './state.js';
 import { CAT } from './data.js';
 import { fmt } from './ui.js';
@@ -35,8 +34,6 @@ export function openModal(p) {
   }
   document.getElementById('mPCom').textContent  = fmt(p.pcom);
   document.getElementById('mPPub').textContent  = fmt(p.ppub);
-  document.getElementById('mPCom').closest('.ps-box').classList.toggle('hidden-price', !getShowPrices());
-  document.getElementById('mPPub').closest('.ps-box').classList.toggle('hidden-price', !getShowPrices());
 
   if (p.cat === 'cerveza') {
     document.getElementById('modalFundaSelector').style.display = 'block';

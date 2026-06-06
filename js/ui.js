@@ -1,4 +1,4 @@
-import { getCART, getShowPrices } from './state.js';
+import { getCART, getUserRole } from './state.js';
 import { EMOJI, CAT } from './data.js';
 
 export function fmt(v) {
@@ -30,34 +30,53 @@ export function render(data) {
   lbl.textContent = data.length + ' productos';
 
   const CART = getCART();
+  const isGuest = getUserRole() === 'guest';
 
   data.forEach((p, i) => {
     const card = document.createElement('div');
     card.className = 'card';
     card.dataset.productId = p.id;
     card.style.animationDelay = (i * 0.025) + 's';
-    card.innerHTML = `
-      <div class="card-photo">
-        ${imgOrEmoji(p)}
-        <div class="cat-chip">${CAT[p.cat]}</div>
-      </div>
-      <div class="card-body">
-        <div class="card-brand">${p.brand}</div>
-        <div class="card-name">${p.name}</div>
-        <div class="card-size">${p.size} · ${p.units} u/funda</div>
-        <div class="card-foot">
-          <div>
-            <div class="c-price ${getShowPrices() ? '' : 'hidden-price'}">${fmt(p.ppub)}</div>
-            <div class="c-plabel">precio sugerido</div>
-          </div>
-          <button class="c-btn">+</button>
+
+    if (isGuest) {
+      card.classList.add('guest-card');
+      card.innerHTML = `
+        <div class="card-photo">
+          ${imgOrEmoji(p)}
+          <div class="cat-chip">${CAT[p.cat]}</div>
         </div>
-      </div>`;
-    const totalQty = CART.filter(c => c.id === p.id).reduce((sum, c) => sum + c.qty, 0);
-    if (totalQty > 0) {
-      card.classList.add('in-cart');
-      card.querySelector('.c-btn').textContent = '×' + totalQty;
+        <div class="card-body">
+          <div class="card-brand">${p.brand}</div>
+          <div class="card-name">${p.name}</div>
+          <div class="card-size">${p.size} · ${p.units} u/funda</div>
+          <div class="card-barcode">Cód: ${p.barcode}</div>
+        </div>`;
+    } else {
+      card.innerHTML = `
+        <div class="card-photo">
+          ${imgOrEmoji(p)}
+          <div class="cat-chip">${CAT[p.cat]}</div>
+        </div>
+        <div class="card-body">
+          <div class="card-brand">${p.brand}</div>
+          <div class="card-name">${p.name}</div>
+          <div class="card-size">${p.size} · ${p.units} u/funda</div>
+          <div class="card-foot">
+            <div>
+              <div class="c-price">${fmt(p.ppub)}</div>
+              <div class="c-plabel">precio sugerido</div>
+            </div>
+            <button class="c-btn">+</button>
+          </div>
+        </div>`;
+
+      const inCart = CART.filter(c => c.id === p.id).reduce((sum, c) => sum + c.qty, 0);
+      if (inCart > 0) {
+        card.classList.add('in-cart');
+        card.querySelector('.c-btn').textContent = '×' + inCart;
+      }
     }
+
     grid.appendChild(card);
   });
 }

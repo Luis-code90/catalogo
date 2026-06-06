@@ -223,10 +223,11 @@ export async function handleRegister() {
   }
 }
 
-export function enterAsGuest() {
+export function continueAsGuest() {
   hideAuthOverlay();
-  const ageOverlay = document.getElementById('ageOverlay');
-  if (ageOverlay) ageOverlay.style.display = 'flex';
+  setUserRole('guest');
+  document.getElementById('ageOverlay').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
 }
 
 export async function handleLogout() {

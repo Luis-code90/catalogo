@@ -60,3 +60,17 @@
 .card.in-cart { border:2px solid var(--teal); }
 .card.in-cart .c-btn { background:var(--teal); }
 .c-btn-check { background:var(--teal) !important; }
+
+.card-barcode {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 0.25rem;
+}
+
+.guest-card {
+  cursor: default;
+}
+
+.guest-card .card-photo {
+  opacity: 0.95;
+}

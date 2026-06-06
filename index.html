@@ -24,7 +24,7 @@
 <body>
 
 <!-- MODAL VERIFICACIÓN DE EDAD -->
-<div class="age-overlay" id="ageOverlay">
+<div class="age-overlay" id="ageOverlay" style="display:none">
   <div class="age-box">
     <div class="age-icon">🍺</div>
     <div class="age-title">Verificación de Edad</div>
@@ -52,7 +52,8 @@
       <input class="client-input" id="loginPassword" type="password" placeholder="Tu contraseña">
       <div class="auth-error" id="loginError"></div>
       <button class="client-btn confirm" id="loginBtn" onclick="handleLogin()">Entrar</button>
-      <button class="client-btn cancel" onclick="enterAsGuest()" style="margin-top:0.25rem">Entrar como invitado</button>
+      <div class="auth-divider">— o —</div>
+      <button class="client-btn guest-btn" onclick="continueAsGuest()">Continuar como invitado</button>
       <p class="auth-switch">¿No tenés cuenta? <a href="#" onclick="showAuthRegister()">Registrate</a></p>
     </div>
 
@@ -117,7 +118,6 @@
       <span class="logo-sub">Distribuidor Oficial CCU</span>
     </div>
   </div>
-  <button id="togglePricesBtn" onclick="togglePrices()">🙈 Ocultar precios</button>
   <div class="validity">Vigencia:<br> 01 / 05 / 2026</div>
   <div class="header-user" id="headerUser" style="display:none">
     <span class="header-user-email" id="headerUserEmail"></span>

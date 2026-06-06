@@ -133,22 +133,6 @@ main { padding:1.8rem 2rem 4rem; max-width:1480px; margin:0 auto; }
 .empty.show { display:block; }
 .empty-icon { font-size:3rem; margin-bottom:.7rem; }
 
-.hidden-price {
-  filter: blur(6px);
-  user-select: none;
-  pointer-events: none;
-}
-
-#togglePricesBtn {
-  background: none;
-  border: 1px solid var(--muted);
-  color: var(--muted);
-  border-radius: 20px;
-  padding: 0.3rem 0.8rem;
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-
 .loading-state {
   display: none;
   flex-direction: column;

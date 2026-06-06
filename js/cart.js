@@ -1,4 +1,4 @@
-import { getCART, setCART, getProducts, MIN_ORDER_AMOUNT } from './state.js';
+import { getCART, setCART, getProducts, MIN_ORDER_AMOUNT, getUserRole } from './state.js';
 import { saveCart } from './storage.js';
 import { fmt, animateCartBounce } from './ui.js';
 
@@ -47,13 +47,19 @@ export function clearCart() {
 }
 
 export function updateCartUI() {
-  const CART = getCART();
   const cartBtn = document.getElementById('cartBtn');
+  if (!cartBtn) return;
+
+  if (getUserRole() === 'guest') {
+    cartBtn.style.display = 'none';
+    return;
+  }
+  cartBtn.style.display = 'flex';
+
+  const CART = getCART();
   const cartCount = document.getElementById('cartCount');
   const cartList = document.getElementById('cartList');
   const cartTotal = document.getElementById('cartTotal');
-
-  if (!cartBtn) return;
 
   const totalItems = CART.reduce((sum, item) => sum + item.qty, 0);
   cartCount.textContent = totalItems;

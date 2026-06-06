@@ -1,5 +1,5 @@
-import { initAuth, handleLogin, handleRegister, handleLogout, showAuthLogin, showAuthRegister, enterAsGuest } from './auth.js';
-import { setProducts, getProducts, setIsAdult, getShowPrices, setShowPrices, setVendedores, setWhatsappPhone } from './state.js';
+import { initAuth, handleLogin, handleRegister, handleLogout, showAuthLogin, showAuthRegister, continueAsGuest } from './auth.js';
+import { setProducts, getProducts, setIsAdult, setVendedores, setWhatsappPhone, getUserRole } from './state.js';
 import { fetchProductos, fetchVendedores, fetchEmpresa } from './supabase.js';
 import { updateCartUI } from './cart.js';
 import { loadCart } from './storage.js';
@@ -80,15 +80,6 @@ function closePromo() {
   document.body.style.overflow = '';
 }
 
-// ── PRICE TOGGLE ─────────────────────────────────────────
-export function togglePrices() {
-  const newVal = !getShowPrices();
-  setShowPrices(newVal);
-  const btn = document.getElementById('togglePricesBtn');
-  btn.textContent = newVal ? '🙈 Ocultar precios' : '👁 Mostrar precios';
-  filter();
-}
-
 // ── CART TOGGLE ──────────────────────────────────────────
 function toggleCart() {
   const panel = document.getElementById('cartPanel');
@@ -107,6 +98,7 @@ function setupEventListeners() {
 
   // Cart list delegation (+ / - buttons)
   document.getElementById('cartList').addEventListener('click', (e) => {
+    if (getUserRole() === 'guest') return;
     e.stopPropagation();
     const btn = e.target.closest('.ci-btn');
     if (!btn) return;
@@ -135,10 +127,10 @@ function setupEventListeners() {
 
   // Grid delegation: card click -> modal / c-btn click -> addToCartById
   document.getElementById('grid').addEventListener('click', (e) => {
+    if (getUserRole() === 'guest') return;
     const cBtn = e.target.closest('.c-btn');
     const card = e.target.closest('.card');
     if (!card) return;
-
     if (cBtn) {
       e.stopPropagation();
       const productId = parseInt(card.dataset.productId);
@@ -165,6 +157,7 @@ function setupEventListeners() {
 // ── INIT ─────────────────────────────────────────────────
 async function init() {
   document.body.style.overflow = 'hidden';
+  document.getElementById('ageOverlay').style.display = 'none';
   document.getElementById('loadingState').classList.add('show');
 
   const ok = await loadProducts();
@@ -184,13 +177,12 @@ async function init() {
   setupEventListeners();
 
   // Guest flow handled in initAuth: shows auth overlay with guest entry button
-  // Age gate will be triggered by enterAsGuest()
+  // Age gate will be triggered by continueAsGuest()
 }
 
 init();
 
 // ── WINDOW EXPORTS (for inline onclick) ──────────────────
-window.togglePrices = togglePrices;
 window.confirmAge = confirmAge;
 window.closePromo = closePromo;
 window.toggleCart = toggleCart;
@@ -218,4 +210,4 @@ window.handleRegister = handleRegister;
 window.handleLogout = handleLogout;
 window.showAuthLogin = showAuthLogin;
 window.showAuthRegister = showAuthRegister;
-window.enterAsGuest = enterAsGuest;
+window.continueAsGuest = continueAsGuest;
