@@ -2,15 +2,15 @@ import { getProducts, getActiveCat, setActiveCat, getActiveBrand, setActiveBrand
 import { render } from './ui.js';
 
 export function hideAlcohol() {
-  document.querySelectorAll('.fb').forEach(btn => {
+  document.querySelectorAll('.cf').forEach(btn => {
     const cat = btn.dataset.cat;
     if (ADULT_CATS.includes(cat)) btn.style.display = 'none';
   });
   const activeCat = getActiveCat();
   if (ADULT_CATS.includes(activeCat)) {
     setActiveCat('todos');
-    document.querySelector('.fb.active')?.classList.remove('active');
-    document.querySelector('.fb')?.classList.add('active');
+    document.querySelector('.cf.active')?.classList.remove('active');
+    document.querySelector('.cf')?.classList.add('active');
   }
 }
 
@@ -33,7 +33,7 @@ export function filter() {
 export function setCat(cat, btn) {
   setActiveCat(cat);
   setActiveBrand('todas');
-  document.querySelectorAll('.fb').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.cf').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   filter();
   renderBrandFilters();

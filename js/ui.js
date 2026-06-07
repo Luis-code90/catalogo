@@ -80,3 +80,32 @@ export function render(data) {
     grid.appendChild(card);
   });
 }
+
+export function updateHeaderUI(email = null) {
+  const headerUser      = document.getElementById('headerUser');
+  const headerGuest     = document.getElementById('headerGuest');
+  const headerUserEmail = document.getElementById('headerUserEmail');
+  if (email) {
+    if (headerUser)      headerUser.style.display    = 'flex';
+    if (headerGuest)     headerGuest.style.display   = 'none';
+    if (headerUserEmail) headerUserEmail.textContent = email;
+  } else {
+    if (headerUser)  headerUser.style.display  = 'none';
+    if (headerGuest) headerGuest.style.display = 'flex';
+  }
+}
+
+export function updateUIForRole(role, perfil) {
+  const banner = document.getElementById('promoBanner');
+  if (banner) banner.style.display = role === 'authenticated' ? 'block' : 'none';
+
+  const pill = document.getElementById('heroPill');
+  const sub  = document.getElementById('heroSub');
+  if (role === 'authenticated' && perfil) {
+    if (pill) pill.textContent = `👋 BIENVENIDO, ${perfil.nombre.toUpperCase()}`;
+    if (sub)  sub.textContent  = 'Precios actualizados para tu cuenta.';
+  } else {
+    if (pill) pill.textContent = '🇺🇾 DISPONIBLE DONDE MIRLO VENDE';
+    if (sub)  sub.textContent  = 'Agua mineral, gaseosas, néctares, isotónicas, cervezas, vinos y sidras. Iniciá sesión para ver precios.';
+  }
+}

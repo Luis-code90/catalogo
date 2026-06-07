@@ -17,12 +17,11 @@ export async function fetchEmpresa(slug) {
 }
 
 // ── PRODUCTOS ─────────────────────────────────────────────
-export async function fetchProductos(empresaSlug) {
-  const empresa = await fetchEmpresa(empresaSlug);
+export async function fetchProductos(empresaId) {
   const { data, error } = await supabase
     .from('productos')
     .select('*')
-    .eq('empresa_id', empresa.id)
+    .eq('empresa_id', empresaId)
     .eq('activo', true)
     .order('cat')
     .order('brand')
@@ -32,12 +31,11 @@ export async function fetchProductos(empresaSlug) {
 }
 
 // ── VENDEDORES ────────────────────────────────────────────
-export async function fetchVendedores(empresaSlug) {
-  const empresa = await fetchEmpresa(empresaSlug);
+export async function fetchVendedores(empresaId) {
   const { data, error } = await supabase
     .from('vendedores')
     .select('*')
-    .eq('empresa_id', empresa.id)
+    .eq('empresa_id', empresaId)
     .eq('activo', true);
   if (error) throw new Error(error.message);
   return data;

@@ -1,5 +1,5 @@
-import { initAuth, handleLogin, handleRegister, handleLogout, showAuthLogin, showAuthRegister, continueAsGuest } from './auth.js';
-import { setProducts, getProducts, setIsAdult, setVendedores, setWhatsappPhone, getUserRole } from './state.js';
+import { initAuth, handleLogin, handleRegister, handleLogout, showAuthLogin, showAuthRegister, continueAsGuest, showAuthOverlay } from './auth.js';
+import { setProducts, getProducts, setIsAdult, setVendedores, setWhatsappPhone, getUserRole, getCurrentPerfil } from './state.js';
 import { fetchProductos, fetchVendedores, fetchEmpresa } from './supabase.js';
 import { updateCartUI } from './cart.js';
 import { loadCart } from './storage.js';
@@ -9,15 +9,16 @@ import { sendToWhatsApp } from './whatsapp.js';
 import { updateClientInfoLine, editClientInfo, confirmClientInfo, cancelClientInfo, setClientType, clientStepBack, clientStepNext, openClientModal, showStep } from './client.js';
 import { openOrderHistory, closeOrderHistory, closeHistoryBg } from './history.js';
 import { clearCart, addToCartById, removeFromCart } from './cart.js';
+import { updateUIForRole } from './ui.js';
 
 // ── PRODUCT LOADING ──────────────────────────────────────
 async function loadProducts() {
   try {
     const slug = window.location.pathname.split('/').filter(Boolean).find(p => p !== 'index.html') || 'mirlosas';
-    const [empresa, productos, vendedores] = await Promise.all([
-      fetchEmpresa(slug),
-      fetchProductos(slug),
-      fetchVendedores(slug)
+    const empresa = await fetchEmpresa(slug);
+    const [productos, vendedores] = await Promise.all([
+      fetchProductos(empresa.id),
+      fetchVendedores(empresa.id)
     ]);
     setProducts(productos);
     setVendedores(vendedores);
@@ -49,8 +50,15 @@ function showLoadError() {
   el.querySelector('.load-error-btn').addEventListener('click', init);
 }
 
+// ── AUTH ENTRY ───────────────────────────────────────────
+function openAuth() { showAuthOverlay(); }
+
+// ── PROMO FILTER ─────────────────────────────────────────
+function filterByPromo() { /* stub — no promo data yet */ }
+
 // ── AGE VERIFICATION ─────────────────────────────────────
 function confirmAge(adult) {
+  sessionStorage.setItem('mirlo_age_verified', adult ? 'adult' : 'minor');
   setIsAdult(adult);
   if (!adult) {
     document.getElementById('ageWarning').classList.add('show');
@@ -89,7 +97,7 @@ function toggleCart() {
 // ── EVENT LISTENERS ──────────────────────────────────────
 function setupEventListeners() {
   // Category filter buttons
-  document.querySelectorAll('.fb').forEach(btn => {
+  document.querySelectorAll('.cf').forEach(btn => {
     btn.addEventListener('click', () => setCat(btn.dataset.cat, btn));
   });
 
@@ -169,6 +177,7 @@ async function init() {
   }
 
   const role = await initAuth();
+  updateUIForRole(role, getCurrentPerfil());
 
   loadCart();
   updateClientInfoLine();
@@ -211,3 +220,5 @@ window.handleLogout = handleLogout;
 window.showAuthLogin = showAuthLogin;
 window.showAuthRegister = showAuthRegister;
 window.continueAsGuest = continueAsGuest;
+window.openAuth = openAuth;
+window.filterByPromo = filterByPromo;

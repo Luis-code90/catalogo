@@ -7,6 +7,7 @@ import {
 import { setIsAdult, setCurrentUser, setCurrentPerfil, setUserRole, getVendors } from './state.js';
 import { filter } from './filters.js';
 import { hideAlcohol } from './filters.js';
+import { updateHeaderUI, updateUIForRole } from './ui.js';
 
 function calcularEdad(fechaNacimiento) {
   const hoy = new Date();
@@ -51,18 +52,6 @@ export async function initAuth() {
   updateHeaderUI(user.email);
   hideAuthOverlay();
   return 'authenticated';
-}
-
-export function updateHeaderUI(email = null) {
-  const headerUser = document.getElementById('headerUser');
-  const headerUserEmail = document.getElementById('headerUserEmail');
-  if (!headerUser) return;
-  if (email) {
-    headerUser.style.display = 'flex';
-    headerUserEmail.textContent = email;
-  } else {
-    headerUser.style.display = 'none';
-  }
 }
 
 export function showAuthOverlay() {
@@ -146,6 +135,7 @@ export async function handleLogin() {
     updateHeaderUI(email);
     hideAuthOverlay();
     filter();
+    updateUIForRole('authenticated', perfil);
 
   } catch (e) {
     errorEl.textContent = 'Email o contraseña incorrectos';
@@ -159,19 +149,12 @@ export async function handleRegister() {
   const email = document.getElementById('registerEmail').value.trim();
   const password = document.getElementById('registerPassword').value;
   const password2 = document.getElementById('registerPassword2').value;
-  const birthdate = document.getElementById('registerBirthdate').value;
   const nombre = document.getElementById('registerNombre').value.trim();
-  const apellido = document.getElementById('registerApellido').value.trim();
   const telefono = document.getElementById('registerTelefono').value.trim();
-  const nombreComercial = document.getElementById('registerComercio').value.trim();
-  const rut = document.getElementById('registerRut').value.trim();
-  const direccion = document.getElementById('registerDireccion').value.trim();
-  const horario = document.getElementById('registerHorario').value.trim();
-  const vendorSelect = document.getElementById('registerVendor');
   const errorEl = document.getElementById('registerError');
   const btn = document.getElementById('registerBtn');
 
-  if (!email || !password || !password2 || !birthdate || !nombre || !apellido || !nombreComercial || !direccion) {
+  if (!email || !password || !password2 || !nombre) {
     errorEl.textContent = 'Completá todos los campos obligatorios';
     return;
   }
@@ -186,33 +169,23 @@ export async function handleRegister() {
     return;
   }
 
-  const edad = calcularEdad(birthdate);
-  if (edad < 13) {
-    errorEl.textContent = 'Debés tener al menos 13 años para registrarte';
-    return;
-  }
-
   btn.textContent = 'Creando cuenta...';
   btn.disabled = true;
   errorEl.textContent = '';
 
   try {
     const { user } = await registerUser(email, password);
-    
+
     const slug = window.location.pathname.split('/').filter(Boolean).find(p => p !== 'index.html') || 'mirlosas';
     const empresa = await fetchEmpresa(slug);
 
     await createPerfil(user.id, email, empresa.id, {
-      nombre, apellido, telefono, fechaNacimiento: birthdate
+      nombre, apellido: '', telefono, fechaNacimiento: null
     });
 
     await createComercio(user.id, {
-      nombreComercial, rut, direccion, horario
+      nombreComercial: nombre, rut: '', direccion: '', horario: ''
     });
-
-    if (vendorSelect && vendorSelect.value) {
-      await createVendedorAsignado(user.id, vendorSelect.value);
-    }
 
     showAuthPending();
   } catch (e) {
@@ -226,6 +199,15 @@ export async function handleRegister() {
 export function continueAsGuest() {
   hideAuthOverlay();
   setUserRole('guest');
+
+  const ageAnswer = sessionStorage.getItem('mirlo_age_verified');
+  if (ageAnswer) {
+    setIsAdult(ageAnswer === 'adult');
+    if (ageAnswer === 'minor') hideAlcohol();
+    filter();
+    return;
+  }
+
   document.getElementById('ageOverlay').style.display = 'flex';
   document.body.style.overflow = 'hidden';
 }
@@ -236,6 +218,11 @@ export async function handleLogout() {
   setCurrentPerfil(null);
   setUserRole('guest');
   updateHeaderUI();
+  updateUIForRole('guest', null);
+  const loginEmail = document.getElementById('loginEmail');
+  const loginPassword = document.getElementById('loginPassword');
+  if (loginEmail) loginEmail.value = '';
+  if (loginPassword) loginPassword.value = '';
   document.getElementById('authOverlay').classList.add('open');
   document.body.style.overflow = 'hidden';
   showAuthLogin();
