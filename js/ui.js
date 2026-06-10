@@ -104,6 +104,72 @@ export function updateHeaderUI(email = null) {
   }
 }
 
+export function renderPromos(promociones, productos) {
+  const grid  = document.getElementById('grid');
+  const empty = document.getElementById('empty');
+  const lbl   = document.getElementById('countLbl');
+
+  grid.innerHTML = '';
+  empty.classList.remove('show');
+
+  const activas = promociones.filter(pr => pr.activa);
+  lbl.textContent = activas.length + ' promociones activas';
+
+  if (!activas.length) {
+    empty.classList.add('show');
+    return;
+  }
+
+  const backBtn = document.createElement('div');
+  backBtn.className = 'promo-back-btn';
+  backBtn.innerHTML = `<button onclick="window.volverCatalogo()">← Volver al catálogo</button>`;
+  grid.before(backBtn);
+
+  activas.forEach((pr, i) => {
+    const p = productos.find(p => p.id === pr.producto_id);
+    if (!p) return;
+
+    const precioFinal = Math.round(p.pcom * (1 - pr.descuento_pct / 100));
+    const ahorro = p.pcom - precioFinal;
+    const precioFunda = precioFinal * pr.drop_cantidad;
+    const precioFundaOriginal = p.pcom * pr.drop_cantidad;
+
+    const card = document.createElement('div');
+    card.className = 'card promo-card';
+    card.dataset.productId = p.id;
+    card.dataset.promoId = pr.id;
+    card.dataset.dropCantidad = pr.drop_cantidad;
+    card.style.animationDelay = (i * 0.025) + 's';
+
+    card.innerHTML = `
+      <div class="card-photo">
+        ${imgOrEmoji(p)}
+        <div class="promo-badge">${pr.tipo_promo}</div>
+      </div>
+      <div class="card-body">
+        <div class="card-brand">${p.brand}</div>
+        <div class="card-name">${p.name}</div>
+        <div class="card-size">${p.size} · mín. ${pr.drop_cantidad} u.</div>
+        <div class="promo-drop-label">${pr.drop_size}</div>
+        <div class="card-foot">
+          <div class="c-price-block">
+            <div class="c-price-subtotal">${fmt(precioFundaOriginal)}</div>
+            <div class="c-price c-price-promo">${fmt(precioFunda)}</div>
+            <div class="c-plabel">por ${pr.drop_cantidad} unidades</div>
+            <div class="c-price-ahorro">Ahorras ${fmt(ahorro * pr.drop_cantidad)}</div>
+          </div>
+        </div>
+        <div class="promo-qty-selector">
+          <button class="pqs-btn pqs-minus" data-promo-id="${pr.id}" data-product-id="${p.id}" data-drop="${pr.drop_cantidad}">−</button>
+          <span class="pqs-qty" id="pqs-qty-${pr.id}">0</span>
+          <button class="pqs-btn pqs-plus" data-promo-id="${pr.id}" data-product-id="${p.id}" data-drop="${pr.drop_cantidad}">+</button>
+        </div>
+      </div>`;
+
+    grid.appendChild(card);
+  });
+}
+
 export function updateUIForRole(role, perfil) {
   const banner = document.getElementById('promoBanner');
   if (banner) banner.style.display = role === 'authenticated' ? 'block' : 'none';

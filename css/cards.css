@@ -97,3 +97,54 @@
 .guest-card .card-photo {
   opacity: 0.95;
 }
+
+/* PROMO VIEW */
+.promo-drop-label {
+  font-size: .62rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .8px;
+  color: #dc2626; margin-bottom: .4rem;
+}
+
+.promo-back-btn {
+  grid-column: 1 / -1;
+  padding: .5rem 0 1rem;
+}
+
+.promo-back-btn button {
+  background: none; border: 1.5px solid var(--frost);
+  border-radius: 10px; padding: .5rem 1.2rem;
+  font-family: 'Sora', sans-serif; font-size: .85rem;
+  color: var(--text); cursor: pointer; transition: all .2s;
+}
+
+.promo-back-btn button:hover {
+  background: var(--light); border-color: var(--muted);
+}
+
+.promo-card .card-foot {
+  justify-content: flex-end;
+}
+.promo-card .c-price-block {
+  text-align: right;
+}
+
+/* PROMO QTY SELECTOR */
+.promo-qty-selector {
+  display: flex; align-items: center; gap: .4rem;
+  justify-content: center;
+  margin-top: .5rem;
+  padding-top: .5rem;
+  border-top: 1px solid var(--frost);
+}
+.pqs-btn {
+  width: 30px; height: 30px;
+  background: var(--light); border: none; border-radius: 7px;
+  font-size: 1.1rem; font-weight: 600; color: var(--deep);
+  cursor: pointer; transition: background .15s;
+  display: flex; align-items: center; justify-content: center;
+}
+.pqs-btn:hover { background: var(--frost); }
+.pqs-qty {
+  min-width: 28px; text-align: center;
+  font-size: 1rem; font-weight: 600; color: var(--deep);
+}

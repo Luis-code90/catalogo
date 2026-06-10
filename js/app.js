@@ -1,6 +1,6 @@
 import { initAuth, handleLogin, handleRegister, handleLogout, showAuthLogin, showAuthRegister, continueAsGuest, showAuthOverlay } from './auth.js';
-import { setProducts, getProducts, setIsAdult, setVendedores, setWhatsappPhone, getUserRole, getCurrentPerfil } from './state.js';
-import { fetchProductos, fetchVendedores, fetchEmpresa } from './supabase.js';
+import { setProducts, getProducts, setIsAdult, setVendedores, setWhatsappPhone, setPromociones, getPromociones, getUserRole, getCurrentPerfil } from './state.js';
+import { fetchProductos, fetchVendedores, fetchEmpresa, fetchPromociones } from './supabase.js';
 import { updateCartUI } from './cart.js';
 import { loadCart } from './storage.js';
 import { openModal, closeModal, closeBg, changeQty, addFromModal, selectFundaSize, selectBottleMode } from './modal.js';
@@ -8,20 +8,22 @@ import { filter, setCat, hideAlcohol } from './filters.js';
 import { sendToWhatsApp } from './whatsapp.js';
 import { updateClientInfoLine, editClientInfo, confirmClientInfo, cancelClientInfo, setClientType, clientStepBack, clientStepNext, openClientModal, showStep } from './client.js';
 import { openOrderHistory, closeOrderHistory, closeHistoryBg } from './history.js';
-import { clearCart, addToCartById, removeFromCart } from './cart.js';
-import { updateUIForRole } from './ui.js';
+import { clearCart, addToCart, addToCartById, removeFromCart } from './cart.js';
+import { updateUIForRole, renderPromos } from './ui.js';
 
 // ── PRODUCT LOADING ──────────────────────────────────────
 async function loadProducts() {
   try {
     const slug = window.location.pathname.split('/').filter(Boolean).find(p => p !== 'index.html') || 'mirlosas';
     const empresa = await fetchEmpresa(slug);
-    const [productos, vendedores] = await Promise.all([
+    const [productos, vendedores, promociones] = await Promise.all([
       fetchProductos(empresa.id),
-      fetchVendedores(empresa.id)
+      fetchVendedores(empresa.id),
+      fetchPromociones(empresa.id)
     ]);
     setProducts(productos);
     setVendedores(vendedores);
+    setPromociones(promociones);
     setWhatsappPhone(empresa.whatsapp_phone);
     return true;
   } catch (error) {
@@ -54,7 +56,17 @@ function showLoadError() {
 function openAuth() { showAuthOverlay(); }
 
 // ── PROMO FILTER ─────────────────────────────────────────
-function filterByPromo() { /* stub — no promo data yet */ }
+function filterByPromo() {
+  renderPromos(getPromociones(), getProducts());
+  document.getElementById('catFilters').style.display = 'none';
+}
+
+function volverCatalogo() {
+  document.getElementById('catFilters').style.display = 'flex';
+  document.querySelector('.promo-back-btn')?.remove();
+  filter();
+}
+window.volverCatalogo = volverCatalogo;
 
 // ── AGE VERIFICATION ─────────────────────────────────────
 function confirmAge(adult) {
@@ -137,8 +149,37 @@ function setupEventListeners() {
   document.getElementById('grid').addEventListener('click', (e) => {
     if (getUserRole() === 'guest') return;
     const cBtn = e.target.closest('.c-btn');
+    const pqsBtn = e.target.closest('.pqs-btn');
     const card = e.target.closest('.card');
     if (!card) return;
+
+    if (pqsBtn) {
+      e.stopPropagation();
+      const productId = parseInt(pqsBtn.dataset.productId);
+      const promoId = pqsBtn.dataset.promoId;
+      const drop = parseInt(pqsBtn.dataset.drop);
+      const qtyEl = document.getElementById(`pqs-qty-${promoId}`);
+      const product = getProducts().find(p => p.id === productId);
+      if (!product) return;
+      const promo = getPromociones().find(p => String(p.id) === promoId);
+      if (!promo) return;
+      const precioFinal = Math.round(product.pcom * (1 - promo.descuento_pct / 100));
+      const productWithDrop = { ...product, units: drop, pcom: precioFinal };
+
+      if (pqsBtn.classList.contains('pqs-plus')) {
+        addToCart(productWithDrop, 1);
+        const current = parseInt(qtyEl.textContent) || 0;
+        qtyEl.textContent = current + 1;
+      } else {
+        const current = parseInt(qtyEl.textContent) || 0;
+        if (current <= 0) return;
+        removeFromCart(productId, drop);
+        qtyEl.textContent = current - 1;
+      }
+      return;
+    }
+
+    if (card.classList.contains('promo-card') && !cBtn) return;
     if (cBtn) {
       e.stopPropagation();
       const productId = parseInt(card.dataset.productId);

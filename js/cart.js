@@ -121,6 +121,7 @@ export function refreshCardStates() {
   document.querySelectorAll('#grid .card').forEach(card => {
     const id = parseInt(card.dataset.productId);
     if (isNaN(id)) return;
+    if (card.classList.contains('promo-card')) return;
     const totalQty = CART
       .filter(c => c.id === id)
       .reduce((sum, c) => sum + c.qty, 0);

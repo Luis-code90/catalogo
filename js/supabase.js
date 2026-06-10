@@ -56,6 +56,25 @@ export async function fetchVendedores(empresaId) {
   return data;
 }
 
+// ── PROMOCIONES ───────────────────────────────────────────
+export async function fetchPromociones(empresaId) {
+  const key = `mirlo_promociones_${empresaId}`;
+  const cached = sessionStorage.getItem(key);
+  if (cached) return JSON.parse(cached);
+
+  const { data, error } = await supabase
+    .from('promociones')
+    .select('*')
+    .eq('empresa_id', empresaId)
+    .eq('activa', true)
+    .gte('fecha_fin', new Date().toISOString().split('T')[0])
+    .order('id');
+
+  if (error) throw new Error(error.message);
+  sessionStorage.setItem(key, JSON.stringify(data));
+  return data;
+}
+
 // ── AUTH ──────────────────────────────────────────────────
 export async function registerUser(email, password) {
   const { data, error } = await supabase.auth.signUp({ email, password });

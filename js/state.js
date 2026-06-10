@@ -24,6 +24,7 @@ let modalFundaSize = 6;
 let modalBottleMode = 'unit';
 
 let whatsappPhone = '';
+let promociones = [];
 
 // ── CONSTANTS ────────────────────────────────────────────
 export const CART_STORAGE_KEY = 'mirlo_cart';
@@ -47,6 +48,7 @@ export function getModalFundaSize() { return modalFundaSize; }
 export function getModalBottleMode() { return modalBottleMode; }
 export function getSelectedVendor() { return selectedVendor; }
 export function getIsExistingClient() { return isExistingClient; }
+export function getPromociones() { return promociones; }
 export function getWhatsappPhone() { return whatsappPhone; }
 export function getCurrentUser() { return currentUser; }
 export function getCurrentPerfil() { return currentPerfil; }
@@ -69,6 +71,7 @@ export function setModalFundaSize(v) { modalFundaSize = v; }
 export function setModalBottleMode(v) { modalBottleMode = v; }
 export function setSelectedVendor(v) { selectedVendor = v; localStorage.setItem('mirlo_vendor', JSON.stringify(v)); }
 export function setIsExistingClient(v) { isExistingClient = v; }
+export function setPromociones(v) { promociones = v; }
 export function setWhatsappPhone(v) { whatsappPhone = v; }
 export function setCurrentUser(v) { currentUser = v; }
 export function setCurrentPerfil(v) { currentPerfil = v; }
