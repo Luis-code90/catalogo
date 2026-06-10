@@ -67,6 +67,29 @@
   margin-top: 0.25rem;
 }
 
+/* PROMO BADGE */
+.promo-badge {
+  position: absolute; top: 9px; right: 9px;
+  font-size: .58rem; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; padding: 3px 9px; border-radius: 20px;
+  background: #dc2626; color: #fff;
+}
+
+/* PRICE BLOCK */
+.c-price-block { display: flex; flex-direction: column; gap: 1px; }
+
+.c-price-subtotal {
+  font-size: .75rem; color: var(--muted);
+  text-decoration: line-through; line-height: 1;
+}
+
+.c-price-promo { color: var(--deep); }
+
+.c-price-ahorro {
+  font-size: .68rem; font-weight: 700;
+  color: #16a34a; margin-top: 2px;
+}
+
 .guest-card {
   cursor: default;
 }

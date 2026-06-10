@@ -7,17 +7,26 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ── EMPRESA ──────────────────────────────────────────────
 export async function fetchEmpresa(slug) {
+  const key = `mirlo_empresa_${slug}`;
+  const cached = sessionStorage.getItem(key);
+  if (cached) return JSON.parse(cached);
+
   const { data, error } = await supabase
     .from('empresas')
     .select('id, whatsapp_phone')
     .eq('slug', slug)
     .single();
   if (error) throw new Error(`Empresa no encontrada: ${slug}`);
+  sessionStorage.setItem(key, JSON.stringify(data));
   return data;
 }
 
 // ── PRODUCTOS ─────────────────────────────────────────────
 export async function fetchProductos(empresaId) {
+  const key = `mirlo_productos_${empresaId}`;
+  const cached = sessionStorage.getItem(key);
+  if (cached) return JSON.parse(cached);
+
   const { data, error } = await supabase
     .from('productos')
     .select('*')
@@ -27,17 +36,23 @@ export async function fetchProductos(empresaId) {
     .order('brand')
     .order('name');
   if (error) throw new Error(error.message);
+  sessionStorage.setItem(key, JSON.stringify(data));
   return data;
 }
 
 // ── VENDEDORES ────────────────────────────────────────────
 export async function fetchVendedores(empresaId) {
+  const key = `mirlo_vendedores_${empresaId}`;
+  const cached = sessionStorage.getItem(key);
+  if (cached) return JSON.parse(cached);
+
   const { data, error } = await supabase
     .from('vendedores')
     .select('*')
     .eq('empresa_id', empresaId)
     .eq('activo', true);
   if (error) throw new Error(error.message);
+  sessionStorage.setItem(key, JSON.stringify(data));
   return data;
 }
 

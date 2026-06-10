@@ -52,19 +52,28 @@ export function render(data) {
           <div class="card-barcode">Cód: ${p.barcode}</div>
         </div>`;
     } else {
+      const pcom = p.pcom;
+      const ppub = p.ppub;
+      const esPromo = p.es_promo && p.descuento_pct > 0;
+      const precioFinal = esPromo ? Math.round(pcom * (1 - p.descuento_pct / 100)) : pcom;
+      const ahorro = esPromo ? pcom - precioFinal : 0;
+
       card.innerHTML = `
         <div class="card-photo">
           ${imgOrEmoji(p)}
           <div class="cat-chip">${CAT[p.cat]}</div>
+          ${esPromo ? '<div class="promo-badge">PROMO</div>' : ''}
         </div>
         <div class="card-body">
           <div class="card-brand">${p.brand}</div>
           <div class="card-name">${p.name}</div>
           <div class="card-size">${p.size} · ${p.units} u/funda</div>
           <div class="card-foot">
-            <div>
-              <div class="c-price">${fmt(p.ppub)}</div>
-              <div class="c-plabel">precio sugerido</div>
+            <div class="c-price-block">
+              ${esPromo ? `<div class="c-price-subtotal">${fmt(pcom)}</div>` : ''}
+              <div class="c-price ${esPromo ? 'c-price-promo' : ''}">${fmt(esPromo ? precioFinal : ppub)}</div>
+              <div class="c-plabel">${esPromo ? 'precio promo' : 'precio sugerido'}</div>
+              ${esPromo ? `<div class="c-price-ahorro">Ahorraste ${fmt(ahorro)}</div>` : ''}
             </div>
             <button class="c-btn">+</button>
           </div>
