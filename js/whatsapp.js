@@ -1,10 +1,13 @@
 import {
   getCART, getClientName, getClientBusiness, getClientAddress,
-  getPendingSend, setPendingSend, getWhatsappPhone, getSelectedVendor, getIsExistingClient
+  getPendingSend, setPendingSend, getWhatsappPhone, getSelectedVendor, getIsExistingClient,
+  getCurrentPerfil, setClientName, setClientBusiness, setClientAddress,
+  getVendors, setSelectedVendor
 } from './state.js';
 import { getPriceFunda, clearCart } from './cart.js';
 import { fmt } from './ui.js';
 import { saveOrder } from './storage.js';
+import { showStep } from './client.js';
 
 export function getCartMessage() {
   const CART = getCART();
@@ -75,21 +78,31 @@ export function sendToWhatsApp() {
   const CART = getCART();
   if (CART.length === 0) return;
 
-  const clientName = getClientName();
-  const clientBusiness = getClientBusiness();
+  const perfil = getCurrentPerfil();
+  const comercio = perfil?.comercios;
+  const vendedorAsignado = perfil?.vendedores_asignados?.[0];
+  const vendedorDelPerfil = vendedorAsignado
+    ? getVendors().find(v => v.id === vendedorAsignado.vendedor_id)
+    : null;
+  const vendedorOk = getSelectedVendor() || vendedorDelPerfil;
 
-  if (!clientName || !clientBusiness) {
-    setPendingSend(true);
-    ['clientStep1','clientStep2A','clientStep2B','clientStep3'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = 'none';
-    });
-    const step1 = document.getElementById('clientStep1');
-    if (step1) step1.style.display = 'block';
-    document.getElementById('clientOverlay').classList.add('open');
-    document.body.style.overflow = 'hidden';
+  if (comercio?.direccion && comercio?.nombre_comercial && vendedorOk) {
+    setClientName(perfil.nombre);
+    setClientBusiness(comercio.nombre_comercial);
+    setClientAddress(comercio.direccion);
+    if (!getSelectedVendor() && vendedorDelPerfil) {
+      setSelectedVendor(vendedorDelPerfil);
+    }
+    doSendToWhatsApp();
     return;
   }
 
-  doSendToWhatsApp();
+  if (perfil?.nombre) setClientName(perfil.nombre);
+  if (comercio?.nombre_comercial) setClientBusiness(comercio.nombre_comercial);
+  if (comercio?.direccion) setClientAddress(comercio.direccion);
+
+  setPendingSend(true);
+  showStep(1);
+  document.getElementById('clientOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
 }

@@ -49,7 +49,7 @@ export async function initAuth() {
     setIsAdult(true);
   }
 
-  updateHeaderUI(user.email);
+  updateHeaderUI(perfil.nombre || user.email);
   hideAuthOverlay();
   return 'authenticated';
 }
@@ -132,7 +132,7 @@ export async function handleLogin() {
       setIsAdult(true);
     }
 
-    updateHeaderUI(email);
+    updateHeaderUI(perfil.nombre || email);
     hideAuthOverlay();
     filter();
     updateUIForRole('authenticated', perfil);

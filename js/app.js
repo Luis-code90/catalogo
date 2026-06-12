@@ -10,6 +10,7 @@ import { updateClientInfoLine, editClientInfo, confirmClientInfo, cancelClientIn
 import { openOrderHistory, closeOrderHistory, closeHistoryBg } from './history.js';
 import { clearCart, addToCart, addToCartById, removeFromCart } from './cart.js';
 import { updateUIForRole, renderPromos } from './ui.js';
+import { openProfile, closeProfile, closeProfileBg, saveProfile } from './profile.js';
 
 // ── PRODUCT LOADING ──────────────────────────────────────
 async function loadProducts() {
@@ -269,4 +270,8 @@ window.showAuthLogin = showAuthLogin;
 window.showAuthRegister = showAuthRegister;
 window.continueAsGuest = continueAsGuest;
 window.openAuth = openAuth;
+window.openProfile = openProfile;
+window.closeProfile = closeProfile;
+window.closeProfileBg = closeProfileBg;
+window.saveProfile = saveProfile;
 window.filterByPromo = filterByPromo;

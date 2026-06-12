@@ -191,10 +191,18 @@ RLS activa con policy de lectura pública (using (true)).
   subsiguiente. El arranque hace 3 queries a Supabase sin duplicados.
 - pedidos.empresa_id y pedidos.vendedor_id tienen tipo integer en lugar de uuid
   — inconsistente con el resto del esquema
-- handleLogout() no reseteaba UI post-sesión — resuelto. Limpia campos de login
-  y llama updateUIForRole('guest', null).
+- handleLogout() no reseteaba UI post-sesión — resuelto. Limpia campos de login,
+  llama updateUIForRole('guest', null) y filter() para re-renderizar el grid.
 - handleLogin() no actualizaba hero ni banner tras login en sesión activa — resuelto.
   Llama updateUIForRole('authenticated', perfil) al completar el login exitoso.
+- clearCart() se ejecutaba antes de armar el mensaje en doSendToWhatsApp — resuelto.
+  Ahora se llama después de construir la URL, antes de window.open.
+- Subtotal por producto faltaba en el panel del carrito — resuelto. cart.js agrega
+  .ci-subtotal con fmt(pf * item.qty) bajo la línea de cantidad.
+- Modal de producto mostraba selector ×6/×24 en cervezas 1000cc — resuelto.
+  esLitro = p.size.includes('1000') oculta modalFundaSelector y usa p.units directo.
+- updateComercio en supabase.js pasaba datos directamente — resuelto. Ahora mapea
+  campos explícitamente y corrige horario → horario_recepcion.
 
 ## Cards rediseñadas (autenticado)
 - Precio con subtotal tachado (pcom original), total con descuento en var(--deep),
@@ -216,6 +224,18 @@ Primera carga va a Supabase, recargas sirven desde caché. Se limpia al cerrar l
 - overflow-x: hidden en body.
 - @media (max-width: 480px): header oculta .header-user-name en chip de usuario,
   cart panel ocupa 100vw con border-radius superior, bottom sheet desde abajo.
+
+## Features UX agregadas
+- Tecla Escape cierra el modal de producto (listener keydown en app.js).
+- Header muestra perfil.nombre en lugar del email. updateHeaderUI(displayName) acepta
+  nombre o email; initAuth y handleLogin pasan perfil.nombre || email.
+- sendToWhatsApp salta el flujo de datos del cliente si perfil tiene comercios.direccion,
+  comercios.nombre_comercial y vendedor asignado (del perfil o seleccionado). Pre-rellena
+  campos si tiene datos parciales. Nota: comercios es objeto directo, no array.
+- Panel de perfil (js/profile.js): overlay accesible desde click en el chip del header.
+  Muestra y permite editar datos personales (nombre, apellido, teléfono) y del comercio
+  (nombre, RUT, dirección, horario). Llama updatePerfil y updateComercio en Supabase
+  y actualiza el estado local con setCurrentPerfil.
 
 ## Pendientes
 - Panel admin para cargar y gestionar promociones

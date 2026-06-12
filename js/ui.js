@@ -90,14 +90,14 @@ export function render(data) {
   });
 }
 
-export function updateHeaderUI(email = null) {
+export function updateHeaderUI(displayName = null) {
   const headerUser      = document.getElementById('headerUser');
   const headerGuest     = document.getElementById('headerGuest');
   const headerUserEmail = document.getElementById('headerUserEmail');
-  if (email) {
+  if (displayName) {
     if (headerUser)      headerUser.style.display    = 'flex';
     if (headerGuest)     headerGuest.style.display   = 'none';
-    if (headerUserEmail) headerUserEmail.textContent = email;
+    if (headerUserEmail) headerUserEmail.textContent = displayName;
   } else {
     if (headerUser)  headerUser.style.display  = 'none';
     if (headerGuest) headerGuest.style.display = 'flex';

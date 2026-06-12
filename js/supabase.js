@@ -167,7 +167,12 @@ export async function updatePerfil(userId, datos) {
 export async function updateComercio(perfilId, datos) {
   const { error } = await supabase
     .from('comercios')
-    .update(datos)
+    .update({
+      nombre_comercial: datos.nombre_comercial,
+      rut: datos.rut,
+      direccion: datos.direccion,
+      horario_recepcion: datos.horario
+    })
     .eq('perfil_id', perfilId);
   if (error) throw new Error(error.message);
 }

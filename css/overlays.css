@@ -256,3 +256,48 @@
   font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
   color: var(--teal); letter-spacing: 0.05em; margin: 0.5rem 0 0.25rem;
 }
+
+/* PROFILE OVERLAY */
+.overlay-base {
+  display: none; position: fixed; inset: 0; z-index: 500;
+  background: rgba(8,42,56,.85); backdrop-filter: blur(8px);
+  align-items: center; justify-content: center; padding: 1.5rem;
+}
+.overlay-base.open { display: flex; }
+
+.profile-box {
+  background: var(--white); border-radius: 20px;
+  width: 100%; max-width: 440px;
+  max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 30px 90px rgba(0,0,0,.28);
+  animation: popIn .3s cubic-bezier(.34,1.56,.64,1);
+}
+.profile-header {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 1.5rem 1.5rem 1rem;
+  border-bottom: 1px solid var(--frost);
+}
+.profile-avatar-lg {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--teal); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.profile-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.3rem; letter-spacing: 1px; color: var(--deep);
+}
+.profile-email { font-size: .78rem; color: var(--muted); }
+.profile-close {
+  margin-left: auto; background: none; border: none;
+  color: var(--muted); cursor: pointer; padding: 4px;
+  border-radius: 6px; transition: background .2s;
+  display: flex; align-items: center;
+}
+.profile-close:hover { background: var(--light); color: var(--deep); }
+.profile-body { padding: 1.25rem 1.5rem 1.75rem; display: flex; flex-direction: column; gap: .5rem; }
+.profile-section-label {
+  font-size: .72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--teal); margin: .5rem 0 .25rem;
+}
+.profile-row { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+.profile-error { color: #e53e3e; font-size: .85rem; min-height: 1.2rem; text-align: center; }
