@@ -2,7 +2,7 @@ import {
   getCART, getClientName, getClientBusiness, getClientAddress,
   getPendingSend, setPendingSend, getWhatsappPhone, getSelectedVendor, getIsExistingClient
 } from './state.js';
-import { getPriceFunda } from './cart.js';
+import { getPriceFunda, clearCart } from './cart.js';
 import { fmt } from './ui.js';
 import { saveOrder } from './storage.js';
 
@@ -67,6 +67,7 @@ export function doSendToWhatsApp() {
     ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
     : `https://web.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
 
+  clearCart();
   window.open(url, '_blank');
 }
 

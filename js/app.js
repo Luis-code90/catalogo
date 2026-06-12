@@ -201,6 +201,13 @@ function setupEventListeners() {
       panel.classList.remove('open');
     }
   });
+
+  // Cerrar modal con Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (document.getElementById('overlay').classList.contains('open')) closeModal();
+    }
+  });
 }
 
 // ── INIT ─────────────────────────────────────────────────

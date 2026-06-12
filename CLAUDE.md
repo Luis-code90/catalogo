@@ -16,12 +16,13 @@ El mismo código sirve múltiples empresas via slug en la URL.
 - state.js — estado global singleton con getters/setters explícitos (sin reactividad)
 - supabase.js — cliente Supabase y todas las queries
 - ui.js — módulo centralizado para actualizaciones de DOM dependientes del rol.
-  Contiene updateHeaderUI(email) y updateUIForRole(role, perfil).
+  Contiene updateHeaderUI(email), updateUIForRole(role, perfil) y renderPromos(promociones, productos).
   Grafo de imports: app.js → ui.js ← auth.js, sin ciclos.
 - js/ — módulos ES por feature (cart, modal, filters, etc.)
 
 ## Flujo de inicialización
-1. fetchEmpresa + fetchProductos + fetchVendedores (paralelo)
+1. fetchEmpresa + fetchProductos + fetchVendedores + fetchPromociones (paralelo)
+   Todas con caché sessionStorage — recargas no hacen queries a Supabase.
 2. initAuth() — detecta rol: guest | pending | authenticated
 3. loadCart() — restaura desde localStorage
 4. filter() — primer render del grid
@@ -151,6 +152,24 @@ categorías cerveza/vino/sidra antes del render.
 | perfil_id   | uuid | FK → perfiles        |
 | vendedor_id | uuid | FK → vendedores      |
 
+### promociones
+| columna       | tipo         | notas                                |
+|---------------|--------------|--------------------------------------|
+| id            | serial       | PK                                   |
+| empresa_id    | uuid         | FK → empresas                        |
+| codigo        | text         |                                      |
+| nombre        | text         |                                      |
+| producto_id   | integer      | FK → productos                       |
+| descuento_pct | numeric(5,2) |                                      |
+| tipo_promo    | text         | "6x5", "5+1", "9.63% OFF"           |
+| drop_size     | text         | "2 SIX PACK", "1 FUNDA"             |
+| drop_cantidad | integer      | unidades mínimas del drop            |
+| canal         | text         | pendiente: no filtra por usuario aún |
+| activa        | boolean      | default true                         |
+| fecha_inicio  | date         |                                      |
+| fecha_fin     | date         |                                      |
+RLS activa con policy de lectura pública (using (true)).
+
 ## Inconsistencias conocidas en el esquema
 - pedidos.empresa_id es integer pero empresas.id es uuid — posible bug
 - pedidos.vendedor_id es integer pero vendedores.id es uuid — posible bug
@@ -176,6 +195,33 @@ categorías cerveza/vino/sidra antes del render.
   y llama updateUIForRole('guest', null).
 - handleLogin() no actualizaba hero ni banner tras login en sesión activa — resuelto.
   Llama updateUIForRole('authenticated', perfil) al completar el login exitoso.
+
+## Cards rediseñadas (autenticado)
+- Precio con subtotal tachado (pcom original), total con descuento en var(--deep),
+  "Ahorras $X" en verde. Badge "PROMO" condicional a es_promo && descuento_pct > 0
+  (campos pendientes de agregar a tabla productos — actualmente solo en promociones).
+- Promo-cards tienen contador − | qty | + (.promo-qty-selector) en lugar de botón +.
+  Al agregar: calcula precioFinal desde promo.descuento_pct, usa drop_cantidad como units.
+  String(p.id) === promoId para comparar UUID/número en dataset.
+
+## Performance
+Caché sessionStorage en los cuatro fetches de arranque:
+- mirlo_empresa_{slug}
+- mirlo_productos_{empresaId}
+- mirlo_vendedores_{empresaId}
+- mirlo_promociones_{empresaId}
+Primera carga va a Supabase, recargas sirven desde caché. Se limpia al cerrar la pestaña.
+
+## Responsive mobile
+- overflow-x: hidden en body.
+- @media (max-width: 480px): header oculta .header-user-name en chip de usuario,
+  cart panel ocupa 100vw con border-radius superior, bottom sheet desde abajo.
+
+## Pendientes
+- Panel admin para cargar y gestionar promociones
+- Asignación de canal por usuario desde panel admin
+- Campo es_promo y descuento_pct en tabla productos
+- Contador − | qty | + en cards normales del catálogo
 
 ## Workflow de desarrollo
 - Claude Code edita archivos directamente en VS Code

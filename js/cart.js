@@ -83,6 +83,7 @@ export function updateCartUI() {
           <div class="ci-info">
             <div class="ci-name">${item.product.brand} ${item.product.name}</div>
             <div class="ci-qty">${displayQty} · ${fmt(pf)}</div>
+            <div class="ci-subtotal">${fmt(pf * item.qty)}</div>
           </div>
           <div class="ci-actions">
             <button class="ci-btn" data-action="remove" data-id="${item.id}" data-units="${p.units}">−</button>

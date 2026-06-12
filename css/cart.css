@@ -78,6 +78,10 @@
 .ci-info { flex:1; }
 .ci-name { font-size:.8rem; font-weight:600; color:var(--deep); }
 .ci-qty { color:var(--muted); font-weight:700; font-size:0.95rem; color:var(--teal); }
+.ci-subtotal {
+  font-size: .78rem; font-weight: 700;
+  color: var(--deep); margin-top: 2px;
+}
 .ci-actions { display:flex; gap:.4rem; }
 .ci-btn {
   width:28px; height:28px;

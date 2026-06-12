@@ -219,6 +219,7 @@ export async function handleLogout() {
   setUserRole('guest');
   updateHeaderUI();
   updateUIForRole('guest', null);
+  filter();
   const loginEmail = document.getElementById('loginEmail');
   const loginPassword = document.getElementById('loginPassword');
   if (loginEmail) loginEmail.value = '';

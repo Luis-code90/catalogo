@@ -26,7 +26,8 @@ export function openModal(p) {
   document.getElementById('mBar').textContent  = 'Cód. barra: ' + p.barcode;
   document.getElementById('mSize').textContent  = p.size;
   if (p.cat === 'cerveza') {
-    document.getElementById('mUnits').textContent = '6 / 24 unidades';
+    const esLitro = p.size && p.size.includes('1000');
+    document.getElementById('mUnits').textContent = esLitro ? p.units + ' unidades' : '6 / 24 unidades';
   } else if (p.cat === 'vino' || p.cat === 'sidra') {
     document.getElementById('mUnits').textContent = '1 u. o caja de 6';
   } else {
@@ -36,13 +37,16 @@ export function openModal(p) {
   document.getElementById('mPPub').textContent  = fmt(p.ppub);
 
   if (p.cat === 'cerveza') {
-    document.getElementById('modalFundaSelector').style.display = 'block';
+    const esLitro = p.size && p.size.includes('1000');
+    document.getElementById('modalFundaSelector').style.display = esLitro ? 'none' : 'block';
     document.getElementById('modalBottleSelector').style.display = 'none';
-    setModalFundaSize(6);
+    setModalFundaSize(p.units);
     document.querySelectorAll('#modalFundaSelector .fs-btn').forEach(b => b.classList.remove('active'));
-    document.querySelector('#modalFundaSelector .fs-btn[data-size="6"]').classList.add('active');
-    document.getElementById('mUnitsDisplay').textContent = 6;
-    document.getElementById('mPFunda').textContent = fmt(p.pcom * 6);
+    if (!esLitro) {
+      document.querySelector('#modalFundaSelector .fs-btn[data-size="6"]').classList.add('active');
+    }
+    document.getElementById('mUnitsDisplay').textContent = p.units;
+    document.getElementById('mPFunda').textContent = fmt(p.pcom * p.units);
   } else if (p.cat === 'vino' || p.cat === 'sidra') {
     document.getElementById('modalFundaSelector').style.display = 'none';
     document.getElementById('modalBottleSelector').style.display = 'block';
