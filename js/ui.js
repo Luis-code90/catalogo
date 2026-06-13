@@ -54,9 +54,9 @@ export function render(data) {
     } else {
       const pcom = p.pcom;
       const ppub = p.ppub;
-      const esPromo = p.es_promo && p.descuento_pct > 0;
-      const precioFinal = esPromo ? Math.round(pcom * (1 - p.descuento_pct / 100)) : pcom;
-      const ahorro = esPromo ? pcom - precioFinal : 0;
+      const esPromo = false;
+      const precioFinal = pcom;
+      const ahorro = 0;
 
       card.innerHTML = `
         <div class="card-photo">
@@ -171,8 +171,8 @@ export function renderPromos(promociones, productos) {
 }
 
 export function updateUIForRole(role, perfil) {
-  const banner = document.getElementById('promoBanner');
-  if (banner) banner.style.display = role === 'authenticated' ? 'block' : 'none';
+  const carousel = document.getElementById('promoCarousel');
+  if (carousel) carousel.style.display = role === 'authenticated' ? 'block' : 'none';
 
   const pill = document.getElementById('heroPill');
   const sub  = document.getElementById('heroSub');

@@ -56,6 +56,47 @@ function showLoadError() {
 // ── AUTH ENTRY ───────────────────────────────────────────
 function openAuth() { showAuthOverlay(); }
 
+// ── PROMO CAROUSEL ───────────────────────────────────────
+function initCarousel() {
+  const promociones = getPromociones();
+  const productos = getProducts();
+  const carousel = document.getElementById('promoCarousel');
+  if (!carousel) return;
+
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('pcMes').textContent = meses[new Date().getMonth()];
+
+  const marcas = [...new Set(promociones.map(pr => {
+    const p = productos.find(p => p.id === pr.producto_id);
+    return p ? p.brand : null;
+  }).filter(Boolean))];
+  document.getElementById('pcBrands').innerHTML = marcas
+    .map(m => `<span class="pc-brand-chip">${m}</span>`).join('');
+
+  const nuevos = productos.filter(p => p.es_nuevo);
+  document.getElementById('pcThumbs').innerHTML = nuevos.slice(0, 4).map(p =>
+    p.img
+      ? `<img class="pc-thumb" src="${p.img}" alt="${p.name}">`
+      : `<div class="pc-thumb-fallback">🆕</div>`
+  ).join('');
+
+  let current = 0;
+  const total = 2;
+
+  function goToSlide(index) {
+    current = ((index % total) + total) % total;
+    document.getElementById('pcTrack').style.transition = 'transform .5s cubic-bezier(.4,0,.2,1)';
+    document.getElementById('pcTrack').style.transform = `translateX(-${current * 100}%)`;
+    document.querySelectorAll('.pc-dot').forEach((d, i) => d.classList.toggle('active', i === current));
+  }
+
+  document.querySelectorAll('.pc-dot').forEach(dot => {
+    dot.addEventListener('click', () => goToSlide(parseInt(dot.dataset.slide)));
+  });
+
+  setInterval(() => goToSlide(current + 1), 4000);
+}
+
 // ── PROMO FILTER ─────────────────────────────────────────
 function filterByPromo() {
   renderPromos(getPromociones(), getProducts());
@@ -227,6 +268,7 @@ async function init() {
 
   const role = await initAuth();
   updateUIForRole(role, getCurrentPerfil());
+  initCarousel();
 
   loadCart();
   updateClientInfoLine();

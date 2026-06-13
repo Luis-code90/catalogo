@@ -149,31 +149,62 @@
 
 <!-- CONTROLS -->
 <div class="controls">
-  <div class="filters" id="catFilters">
-    <button class="cf active" data-cat="todos">Todos</button>
-    <button class="cf" data-cat="agua">Agua</button>
-    <button class="cf" data-cat="gaseosa">Gaseosas</button>
-    <button class="cf" data-cat="nectar">Néctar</button>
-    <button class="cf" data-cat="isotonica">Isotónica</button>
-    <button class="cf" data-cat="cerveza">Cervezas</button>
-    <button class="cf" data-cat="vino">Vinos</button>
-    <button class="cf" data-cat="sidra">Sidras</button>
-    <button class="cf" data-cat="bar">Bar</button>
+  <div class="controls-inner">
+    <div class="filters" id="catFilters">
+      <button class="cf active" data-cat="todos">Todos</button>
+      <button class="cf" data-cat="agua">Agua</button>
+      <button class="cf" data-cat="gaseosa">Gaseosas</button>
+      <button class="cf" data-cat="nectar">Néctar</button>
+      <button class="cf" data-cat="isotonica">Isotónica</button>
+      <button class="cf" data-cat="cerveza">Cervezas</button>
+      <button class="cf" data-cat="vino">Vinos</button>
+      <button class="cf" data-cat="sidra">Sidras</button>
+      <button class="cf" data-cat="bar">Bar</button>
+    </div>
+    <div class="brand-filters" id="brandFilters"></div>
   </div>
-  <div class="brand-filters" id="brandFilters"></div>
 </div>
 
-<div class="promo-banner" id="promoBanner" style="display:none">
-  <div class="promo-banner-inner">
-    <div class="pb-content">
-      <div class="pb-label">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-        OFERTAS ACTIVAS
+<div class="promo-carousel" id="promoCarousel" style="display:none">
+  <div class="pc-carousel-inner">
+  <div class="pc-track" id="pcTrack">
+
+    <!-- Slide 1: Promos del mes -->
+    <div class="pc-slide pc-slide-promos">
+      <div class="pc-inner">
+        <div class="pc-content">
+          <div class="pc-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            PROMOS DE <span id="pcMes"></span>
+          </div>
+          <p class="pc-title">Conocé nuestras promos del mes</p>
+          <div class="pc-brands" id="pcBrands"></div>
+        </div>
+        <button class="pc-btn" onclick="filterByPromo()">Ver más →</button>
       </div>
-      <p class="pb-title">Productos con precio especial esta semana</p>
-      <p class="pb-sub">Aprovechá los precios especiales antes de que venzan</p>
     </div>
-    <button class="pb-btn" onclick="filterByPromo()">Ver todas →</button>
+
+    <!-- Slide 2: Nuevos lanzamientos -->
+    <div class="pc-slide pc-slide-nuevos">
+      <div class="pc-inner">
+        <div class="pc-content">
+          <div class="pc-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            NUEVOS LANZAMIENTOS
+          </div>
+          <p class="pc-title">Descubrí los últimos productos</p>
+          <div class="pc-thumbs" id="pcThumbs"></div>
+        </div>
+        <button class="pc-btn" id="pcNuevosBtn">Ver →</button>
+      </div>
+    </div>
+
+  </div>
+  <!-- Dots -->
+  <div class="pc-dots">
+    <span class="pc-dot active" data-slide="0"></span>
+    <span class="pc-dot" data-slide="1"></span>
+  </div>
   </div>
 </div>
 

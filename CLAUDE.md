@@ -49,8 +49,10 @@ categorías cerveza/vino/sidra antes del render.
   inputs border-radius:12px, animación popIn. Estilos en css/overlays.css.
 - Registro simplificado a 5 campos: nombre/empresa, email, teléfono, contraseña ×2.
   Campos eliminados se envían a Supabase como '' o null.
-- Banner de ofertas (#promoBanner): visible solo para authenticated, oculto en guest
-  y al cerrar sesión. Hardcodeado — se conectará a Supabase cuando exista panel admin.
+- Carrusel dinámico (#promoCarousel): reemplaza el banner estático. Visible solo para
+  authenticated. Dos slides: "Promos del mes" (marcas desde getPromociones(), mes actual)
+  y "Nuevos lanzamientos" (productos con es_nuevo=true). Auto-rotate cada 4s sin rebote
+  (goToSlide con módulo). Dots clickeables. Alineado a max-width: 1280px con .controls-inner.
 
 ## Flujo de registro
 - Registro simplificado — #authRegister en index.html y handleRegister() en js/auth.js
@@ -87,6 +89,7 @@ categorías cerveza/vino/sidra antes del render.
 | barcode    | text    | nullable                     |
 | img        | text    | nullable                     |
 | activo     | boolean | default true                 |
+| es_nuevo   | boolean | default false — slide Nuevos lanzamientos |
 
 ### vendedores
 | columna    | tipo    | notas         |
@@ -205,12 +208,17 @@ RLS activa con policy de lectura pública (using (true)).
   campos explícitamente y corrige horario → horario_recepcion.
 
 ## Cards rediseñadas (autenticado)
-- Precio con subtotal tachado (pcom original), total con descuento en var(--deep),
-  "Ahorras $X" en verde. Badge "PROMO" condicional a es_promo && descuento_pct > 0
-  (campos pendientes de agregar a tabla productos — actualmente solo en promociones).
-- Promo-cards tienen contador − | qty | + (.promo-qty-selector) en lugar de botón +.
+- Cards del catálogo (render()) nunca muestran badge ni descuento: esPromo=false siempre.
+  Las promos son exclusivas del grid renderPromos().
+- Promo-cards tienen precio tachado (precioFundaOriginal), precio final con descuento,
+  "Ahorras $X" y contador − | qty | + (.promo-qty-selector) en lugar de botón +.
   Al agregar: calcula precioFinal desde promo.descuento_pct, usa drop_cantidad como units.
   String(p.id) === promoId para comparar UUID/número en dataset.
+
+## Layout
+- .controls usa wrapper interno .controls-inner { max-width: 1280px; margin: 0 auto;
+  padding: .75rem 1.5rem .25rem } — fondo blanco y borde siguen siendo full-width.
+- main reducido a max-width: 1280px alineado con carrusel y controls-inner.
 
 ## Performance
 Caché sessionStorage en los cuatro fetches de arranque:
@@ -238,10 +246,10 @@ Primera carga va a Supabase, recargas sirven desde caché. Se limpia al cerrar l
   y actualiza el estado local con setCurrentPerfil.
 
 ## Pendientes
-- Panel admin para cargar y gestionar promociones
+- Contador − | qty | + en cards normales del catálogo
+- Panel admin para gestión de promociones y usuarios
 - Asignación de canal por usuario desde panel admin
 - Campo es_promo y descuento_pct en tabla productos
-- Contador − | qty | + en cards normales del catálogo
 
 ## Workflow de desarrollo
 - Claude Code edita archivos directamente en VS Code
