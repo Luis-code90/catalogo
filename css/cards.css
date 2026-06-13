@@ -148,3 +148,10 @@
   min-width: 28px; text-align: center;
   font-size: 1rem; font-weight: 600; color: var(--deep);
 }
+.promo-canal-tag {
+  font-size: .58rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .6px;
+  color: var(--muted); background: var(--light);
+  border-radius: 20px; padding: 2px 8px;
+  display: inline-block; margin-bottom: .3rem;
+}

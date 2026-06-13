@@ -62,6 +62,12 @@ categorías cerveza/vino/sidra antes del render.
   o perfil del usuario. La validación de edad (calcularEdad) se mantiene declarada en el
   módulo para sesiones existentes pero ya no se ejecuta en el registro.
 
+## Datos cargados en Supabase (Mirlosas)
+- 37 promociones activas para junio 2026: Amstel, Heineken, Schneider, Escudo Silver, Nix, Nativa,
+  Full Sport. Cada promo tiene tipo_promo, drop_size, drop_cantidad, canal y fecha_inicio/fin correctos.
+- Productos marcados con es_nuevo=true: id 95 (Escudo Silver 710), id 96 (Miller 473),
+  id 97 (Lemon Stones 470).
+
 ## Esquema de base de datos (Supabase)
 
 ### empresas
@@ -214,6 +220,8 @@ RLS activa con policy de lectura pública (using (true)).
   "Ahorras $X" y contador − | qty | + (.promo-qty-selector) en lugar de botón +.
   Al agregar: calcula precioFinal desde promo.descuento_pct, usa drop_cantidad como units.
   String(p.id) === promoId para comparar UUID/número en dataset.
+- Tag de canal (.promo-canal-tag): pill pequeño debajo de drop_size en promo-cards.
+  Muestra pr.canal en uppercase. Estilo gris sobre var(--light).
 
 ## Layout
 - .controls usa wrapper interno .controls-inner { max-width: 1280px; margin: 0 auto;
@@ -244,6 +252,8 @@ Primera carga va a Supabase, recargas sirven desde caché. Se limpia al cerrar l
   Muestra y permite editar datos personales (nombre, apellido, teléfono) y del comercio
   (nombre, RUT, dirección, horario). Llama updatePerfil y updateComercio en Supabase
   y actualiza el estado local con setCurrentPerfil.
+- Footer con logo catalogs.uy: <footer class="site-footer"> con .footer-inner centrado a
+  max-width:1280px. Logo desde Cloudinary. Visible en todas las vistas. (css/base.css + index.html)
 
 ## Pendientes
 - Contador − | qty | + en cards normales del catálogo

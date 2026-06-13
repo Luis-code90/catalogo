@@ -151,6 +151,7 @@ export function renderPromos(promociones, productos) {
         <div class="card-name">${p.name}</div>
         <div class="card-size">${p.size} · mín. ${pr.drop_cantidad} u.</div>
         <div class="promo-drop-label">${pr.drop_size}</div>
+        <div class="promo-canal-tag">${pr.canal}</div>
         <div class="card-foot">
           <div class="c-price-block">
             <div class="c-price-subtotal">${fmt(precioFundaOriginal)}</div>
