@@ -75,6 +75,12 @@
       <input class="client-input" id="registerTelefono" type="tel" placeholder="Tu teléfono">
       <input class="client-input" id="registerPassword" type="password" placeholder="Contraseña (mín. 6 caracteres) *">
       <input class="client-input" id="registerPassword2" type="password" placeholder="Repetir contraseña *">
+      <div class="auth-terms">
+        <input type="checkbox" id="registerTerms">
+        <label for="registerTerms">
+          Acepto los <a href="/terminos-condiciones.html" target="_blank">Términos y Condiciones</a> y la <a href="/politica-privacidad.html" target="_blank">Política de Privacidad</a>
+        </label>
+      </div>
       <div class="auth-error" id="registerError"></div>
       <button class="client-btn confirm" id="registerBtn" onclick="handleRegister()">Crear cuenta</button>
       <p class="auth-switch">¿Ya tenés cuenta? <a href="#" onclick="showAuthLogin()">Iniciá sesión</a></p>

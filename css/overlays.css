@@ -301,3 +301,14 @@
 }
 .profile-row { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
 .profile-error { color: #e53e3e; font-size: .85rem; min-height: 1.2rem; text-align: center; }
+.auth-terms {
+  display: flex; align-items: flex-start; gap: .5rem;
+  font-size: .8rem; color: var(--muted); line-height: 1.4;
+}
+.auth-terms input[type="checkbox"] {
+  margin-top: 2px; flex-shrink: 0; cursor: pointer;
+  accent-color: var(--teal);
+}
+.auth-terms a {
+  color: var(--teal); text-decoration: underline;
+}

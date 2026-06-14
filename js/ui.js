@@ -157,6 +157,7 @@ export function renderPromos(promociones, productos) {
             <div class="c-price-subtotal">${fmt(precioFundaOriginal)}</div>
             <div class="c-price c-price-promo">${fmt(precioFunda)}</div>
             <div class="c-plabel">por ${pr.drop_cantidad} unidades</div>
+            <div class="c-price-unitario">Unitario: ${fmt(precioFinal)}</div>
             <div class="c-price-ahorro">Ahorras ${fmt(ahorro * pr.drop_cantidad)}</div>
           </div>
         </div>

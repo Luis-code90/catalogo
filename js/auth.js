@@ -154,6 +154,12 @@ export async function handleRegister() {
   const errorEl = document.getElementById('registerError');
   const btn = document.getElementById('registerBtn');
 
+  const terms = document.getElementById('registerTerms');
+  if (!terms.checked) {
+    errorEl.textContent = 'Debés aceptar los Términos y Condiciones para continuar';
+    return;
+  }
+
   if (!email || !password || !password2 || !nombre) {
     errorEl.textContent = 'Completá todos los campos obligatorios';
     return;

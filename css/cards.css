@@ -155,3 +155,7 @@
   border-radius: 20px; padding: 2px 8px;
   display: inline-block; margin-bottom: .3rem;
 }
+.c-price-unitario {
+  font-size: .72rem; font-weight: 600;
+  color: var(--ocean); margin-top: 2px;
+}
