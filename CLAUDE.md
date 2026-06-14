@@ -266,12 +266,16 @@ Primera carga va a Supabase, recargas sirven desde caché. Se limpia al cerrar l
   y actualiza el estado local con setCurrentPerfil.
 - Footer con logo catalogs.uy: <footer class="site-footer"> con .footer-inner centrado a
   max-width:1280px. Logo desde Cloudinary. Visible en todas las vistas. (css/base.css + index.html)
+- Overlay invitado (#promoOverlay) rediseñado: muestra miniaturas de productos es_nuevo=true
+  con botón "Registrate para ver precios". Ya no muestra imagen estática de Watts.
+- Botón "Ver →" del carrusel de nuevos lanzamientos conectado a verNuevosLanzamientos():
+  muestra grid de cards sin precio con badge "NUEVO", botón "← Volver al catálogo".
 
 ## Pendientes
-- Contador − | qty | + en cards normales del catálogo
-- Panel admin para gestión de promociones y usuarios
+- Filtrado de promos por canal (bloqueado hasta panel admin)
 - Asignación de canal por usuario desde panel admin
-- Campo es_promo y descuento_pct en tabla productos
+- Panel admin para gestión de promos y usuarios
+- fecha_lanzamiento en productos para ordenar y archivar lanzamientos
 
 ## Workflow de desarrollo
 - Claude Code edita archivos directamente en VS Code
