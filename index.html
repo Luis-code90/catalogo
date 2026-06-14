@@ -99,9 +99,17 @@
 
 <!-- MODAL PROMOCIONAL -->
 <div class="promo-overlay" id="promoOverlay" onclick="closePromo()">
-  <div class="promo-box" onclick="event.stopPropagation()">
+  <div class="promo-box promo-box-nuevos" onclick="event.stopPropagation()">
     <button class="promo-close" onclick="closePromo()">✕</button>
-      <img class="promo-img" src="https://res.cloudinary.com/dlctgxtrf/image/upload/v1773616408/file_00000000ada471f5ab817f2489525e00_plvvkw.png" alt="Promoción">
+    <div class="pbn-header">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      NUEVOS LANZAMIENTOS
+    </div>
+    <p class="pbn-title">Descubrí los últimos productos</p>
+    <div class="pbn-thumbs" id="pbnThumbs"></div>
+    <button class="pbn-cta" onclick="closePromo(); showAuthOverlay()">
+      Registrate para ver precios
+    </button>
   </div>
 </div>
 

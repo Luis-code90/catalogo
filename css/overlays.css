@@ -312,3 +312,41 @@
 .auth-terms a {
   color: var(--teal); text-decoration: underline;
 }
+.promo-box-nuevos {
+  background: linear-gradient(135deg, var(--ocean), var(--teal));
+  border-radius: 20px; padding: 2rem;
+  max-width: 420px; width: 90%;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 1rem; text-align: center; color: #fff;
+  position: relative;
+}
+.pbn-header {
+  display: flex; align-items: center; gap: .4rem;
+  font-size: .7rem; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: rgba(255,255,255,.7);
+}
+.pbn-title {
+  font-size: 1.1rem; font-weight: 700; margin: 0;
+}
+.pbn-thumbs {
+  display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap;
+}
+.pbn-thumb {
+  width: 56px; height: 56px; border-radius: 10px;
+  object-fit: cover; border: 2px solid rgba(255,255,255,.3);
+}
+.pbn-thumb-fallback {
+  width: 56px; height: 56px; border-radius: 10px;
+  background: rgba(255,255,255,.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem;
+}
+.pbn-cta {
+  background: #fff; color: var(--teal);
+  border: none; border-radius: 12px;
+  padding: .75rem 1.5rem;
+  font-family: 'Sora', sans-serif; font-size: .9rem; font-weight: 700;
+  cursor: pointer; transition: background .2s;
+  width: 100%;
+}
+.pbn-cta:hover { background: var(--frost); }

@@ -95,7 +95,47 @@ function initCarousel() {
   });
 
   setInterval(() => goToSlide(current + 1), 4000);
+
+  const pcNuevosBtn = document.getElementById('pcNuevosBtn');
+  if (pcNuevosBtn) {
+    pcNuevosBtn.addEventListener('click', verNuevosLanzamientos);
+  }
 }
+
+// ── NUEVOS LANZAMIENTOS ───────────────────────────────────
+function verNuevosLanzamientos() {
+  const productos = getProducts();
+  const nuevos = productos.filter(p => p.es_nuevo);
+  const grid = document.getElementById('grid');
+  const lbl = document.getElementById('countLbl');
+
+  document.getElementById('catFilters').style.display = 'none';
+
+  const existing = document.querySelector('.promo-back-btn');
+  if (existing) existing.remove();
+  const backBtn = document.createElement('div');
+  backBtn.className = 'promo-back-btn';
+  backBtn.innerHTML = `<button onclick="window.volverCatalogo()">← Volver al catálogo</button>`;
+  grid.before(backBtn);
+
+  grid.innerHTML = nuevos.map((p, i) => `
+    <div class="card nuevo-card" style="animation-delay:${i * 0.025}s">
+      <div class="card-photo">
+        ${p.img ? `<img src="${p.img}" alt="${p.name}" loading="lazy">` : `<span class="fallback">🆕</span>`}
+        <div class="cat-chip">NUEVO</div>
+      </div>
+      <div class="card-body">
+        <div class="card-brand">${p.brand}</div>
+        <div class="card-name">${p.name}</div>
+        <div class="card-size">${p.size}</div>
+      </div>
+    </div>
+  `).join('');
+
+  lbl.textContent = nuevos.length + ' nuevos lanzamientos';
+  document.getElementById('empty').classList.remove('show');
+}
+window.verNuevosLanzamientos = verNuevosLanzamientos;
 
 // ── PROMO FILTER ─────────────────────────────────────────
 function filterByPromo() {
@@ -133,6 +173,16 @@ function confirmAge(adult) {
 
 // ── PROMO MODAL ──────────────────────────────────────────
 function openPromo() {
+  const productos = getProducts();
+  const nuevos = productos.filter(p => p.es_nuevo);
+  const thumbsEl = document.getElementById('pbnThumbs');
+  if (thumbsEl) {
+    thumbsEl.innerHTML = nuevos.slice(0, 5).map(p =>
+      p.img
+        ? `<img class="pbn-thumb" src="${p.img}" alt="${p.name}">`
+        : `<div class="pbn-thumb-fallback">🆕</div>`
+    ).join('');
+  }
   document.getElementById('promoOverlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
