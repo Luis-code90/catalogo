@@ -1,6 +1,7 @@
 import {
   getCART, getClientName, getClientBusiness, getClientAddress,
-  getPendingSend, setPendingSend, getWhatsappPhone, getSelectedVendor, getIsExistingClient,
+  getPendingSend, setPendingSend, getWhatsappPhone, getSelectedVendor,
+  getIsExistingClient, setIsExistingClient,
   getCurrentPerfil, setClientName, setClientBusiness, setClientAddress,
   getVendors, setSelectedVendor
 } from './state.js';
@@ -30,7 +31,7 @@ export function getCartMessage() {
       : p.cat === 'cerveza'
         ? `${item.qty} funda${item.qty > 1 ? 's' : ''} de ${p.units} (${totalUnits} unidades)`
         : `${item.qty} fundas (${totalUnits} unidades)`;
-    return `- ${p.brand} ${p.name} — ${qtyDisplay}`;
+    return `- ${p.brand} ${p.name} — ${qtyDisplay}${item.product.promoCode ? ` [${item.product.promoCode}]` : ''}`;
   }).join('\n');
 
   const totalFundas = CART.reduce((sum, item) => sum + item.qty, 0);
@@ -102,7 +103,8 @@ export function sendToWhatsApp() {
   if (comercio?.direccion) setClientAddress(comercio.direccion);
 
   setPendingSend(true);
-  showStep(1);
+  setIsExistingClient(true);
+  showStep('2A');
   document.getElementById('clientOverlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 }

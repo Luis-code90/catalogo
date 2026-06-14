@@ -52,17 +52,12 @@ export function render(data) {
           <div class="card-barcode">Cód: ${p.barcode}</div>
         </div>`;
     } else {
-      const pcom = p.pcom;
       const ppub = p.ppub;
-      const esPromo = false;
-      const precioFinal = pcom;
-      const ahorro = 0;
 
       card.innerHTML = `
         <div class="card-photo">
           ${imgOrEmoji(p)}
           <div class="cat-chip">${CAT[p.cat]}</div>
-          ${esPromo ? '<div class="promo-badge">PROMO</div>' : ''}
         </div>
         <div class="card-body">
           <div class="card-brand">${p.brand}</div>
@@ -70,19 +65,21 @@ export function render(data) {
           <div class="card-size">${p.size} · ${p.units} u/funda</div>
           <div class="card-foot">
             <div class="c-price-block">
-              ${esPromo ? `<div class="c-price-subtotal">${fmt(pcom)}</div>` : ''}
-              <div class="c-price ${esPromo ? 'c-price-promo' : ''}">${fmt(esPromo ? precioFinal : ppub)}</div>
-              <div class="c-plabel">${esPromo ? 'precio promo' : 'precio sugerido'}</div>
-              ${esPromo ? `<div class="c-price-ahorro">Ahorraste ${fmt(ahorro)}</div>` : ''}
+              <div class="c-price">${fmt(ppub)}</div>
+              <div class="c-plabel">precio sugerido</div>
             </div>
-            <button class="c-btn">+</button>
+            <div class="c-qty-selector" id="cqs-${p.id}">
+              <button class="cqs-btn cqs-minus" data-product-id="${p.id}">−</button>
+              <span class="cqs-qty">0</span>
+              <button class="cqs-btn cqs-plus" data-product-id="${p.id}">+</button>
+            </div>
           </div>
         </div>`;
 
       const inCart = CART.filter(c => c.id === p.id).reduce((sum, c) => sum + c.qty, 0);
       if (inCart > 0) {
         card.classList.add('in-cart');
-        card.querySelector('.c-btn').textContent = '×' + inCart;
+        card.querySelector('.cqs-qty').textContent = inCart;
       }
     }
 

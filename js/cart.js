@@ -126,14 +126,9 @@ export function refreshCardStates() {
     const totalQty = CART
       .filter(c => c.id === id)
       .reduce((sum, c) => sum + c.qty, 0);
-    const btn = card.querySelector('.c-btn');
-    if (totalQty > 0) {
-      card.classList.add('in-cart');
-      btn.textContent = '×' + totalQty;
-    } else {
-      card.classList.remove('in-cart');
-      btn.textContent = '+';
-    }
+    const qtyEl = card.querySelector('.cqs-qty');
+    if (qtyEl) qtyEl.textContent = totalQty;
+    card.classList.toggle('in-cart', totalQty > 0);
   });
 }
 

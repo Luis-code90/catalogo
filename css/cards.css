@@ -159,3 +159,18 @@
   font-size: .72rem; font-weight: 600;
   color: var(--ocean); margin-top: 2px;
 }
+.c-qty-selector {
+  display: flex; align-items: center; gap: .4rem;
+}
+.cqs-btn {
+  width: 28px; height: 28px;
+  background: var(--light); border: none; border-radius: 7px;
+  font-size: 1rem; font-weight: 600; color: var(--deep);
+  cursor: pointer; transition: background .15s;
+  display: flex; align-items: center; justify-content: center;
+}
+.cqs-btn:hover { background: var(--frost); }
+.cqs-qty {
+  min-width: 24px; text-align: center;
+  font-size: .95rem; font-weight: 600; color: var(--deep);
+}

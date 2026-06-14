@@ -187,13 +187,31 @@ function setupEventListeners() {
     selectBottleMode(btn.dataset.mode);
   });
 
-  // Grid delegation: card click -> modal / c-btn click -> addToCartById
+  // Grid delegation
   document.getElementById('grid').addEventListener('click', (e) => {
     if (getUserRole() === 'guest') return;
-    const cBtn = e.target.closest('.c-btn');
+    const cqsBtn = e.target.closest('.cqs-btn');
     const pqsBtn = e.target.closest('.pqs-btn');
     const card = e.target.closest('.card');
     if (!card) return;
+
+    if (cqsBtn) {
+      e.stopPropagation();
+      const productId = parseInt(cqsBtn.dataset.productId);
+      const product = getProducts().find(p => p.id === productId);
+      if (!product) return;
+      const qtyEl = card.querySelector('.cqs-qty');
+      const current = parseInt(qtyEl.textContent) || 0;
+      if (cqsBtn.classList.contains('cqs-plus')) {
+        addToCart(product, 1);
+        qtyEl.textContent = current + 1;
+      } else {
+        if (current <= 0) return;
+        removeFromCart(productId, product.units);
+        qtyEl.textContent = current - 1;
+      }
+      return;
+    }
 
     if (pqsBtn) {
       e.stopPropagation();
@@ -206,7 +224,7 @@ function setupEventListeners() {
       const promo = getPromociones().find(p => String(p.id) === promoId);
       if (!promo) return;
       const precioFinal = Math.round(product.pcom * (1 - promo.descuento_pct / 100));
-      const productWithDrop = { ...product, units: drop, pcom: precioFinal };
+      const productWithDrop = { ...product, units: drop, pcom: precioFinal, promoCode: promo.codigo };
 
       if (pqsBtn.classList.contains('pqs-plus')) {
         addToCart(productWithDrop, 1);
@@ -221,16 +239,10 @@ function setupEventListeners() {
       return;
     }
 
-    if (card.classList.contains('promo-card') && !cBtn) return;
-    if (cBtn) {
-      e.stopPropagation();
-      const productId = parseInt(card.dataset.productId);
-      addToCartById(productId, cBtn);
-    } else {
-      const productId = parseInt(card.dataset.productId);
-      const product = getProducts().find(p => p.id === productId);
-      if (product) openModal(product);
-    }
+    if (card.classList.contains('promo-card')) return;
+    const productId = parseInt(card.dataset.productId);
+    const product = getProducts().find(p => p.id === productId);
+    if (product) openModal(product);
   });
 
   // Close cart panel when clicking outside
