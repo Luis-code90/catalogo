@@ -68,6 +68,18 @@ categorías cerveza/vino/sidra antes del render.
 - Productos marcados con es_nuevo=true: id 95 (Escudo Silver 710), id 96 (Miller 473),
   id 97 (Lemon Stones 470).
 
+Actualización junio 2026:
+- Precios actualizados: Heineken (todos), Imperial (todos), Amstel (473 y 710),
+  Miller 330, Watts 0.4L / 1L / 1.5L
+- Nuevos productos agregados (ids 100-105):
+  100: Blue Moon Long Neck 355cc (es_nuevo=true)
+  101: Blue Moon Lata 473cc (es_nuevo=true)
+  102: Misiones Espumante Demi Sec
+  103: Misiones Espumante Brut
+  104: Watts 0.4L Naranja Manzana (edición limitada, es_nuevo=true)
+  105: Watts 1.5L Naranja Manzana (edición limitada, es_nuevo=true)
+- Units de cervezas se mantienen en 6 (formato distribuidora), no en 24 como figura en lista CCU
+
 ## Esquema de base de datos (Supabase)
 
 ### empresas
