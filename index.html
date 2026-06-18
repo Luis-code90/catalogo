@@ -54,6 +54,7 @@
       <p class="auth-sub">Accedé a tu cuenta para hacer pedidos</p>
       <input class="client-input" id="loginEmail" type="email" placeholder="Tu email">
       <input class="client-input" id="loginPassword" type="password" placeholder="Tu contraseña">
+      <p class="auth-forgot"><a href="#" onclick="showForgotPassword()">¿Olvidaste tu contraseña?</a></p>
       <div class="auth-error" id="loginError"></div>
       <button class="client-btn confirm" id="loginBtn" onclick="handleLogin()">Entrar</button>
       <div class="auth-divider">O</div>
@@ -84,6 +85,36 @@
       <div class="auth-error" id="registerError"></div>
       <button class="client-btn confirm" id="registerBtn" onclick="handleRegister()">Crear cuenta</button>
       <p class="auth-switch">¿Ya tenés cuenta? <a href="#" onclick="showAuthLogin()">Iniciá sesión</a></p>
+    </div>
+
+    <!-- RECUPERAR CONTRASEÑA -->
+    <div id="authForgot" style="display:none">
+      <div class="auth-icon">
+        <div class="auth-icon-circle auth-icon-lock">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+      </div>
+      <div class="auth-title">Recuperar contraseña</div>
+      <p class="auth-sub">Te enviaremos un email para restablecer tu contraseña</p>
+      <input class="client-input" id="forgotEmail" type="email" placeholder="Tu email">
+      <div class="auth-error" id="forgotError"></div>
+      <button class="client-btn confirm" id="forgotBtn" onclick="handleForgotPassword()">Enviar email</button>
+      <p class="auth-switch">¿Recordaste tu contraseña? <a href="#" onclick="showAuthLogin()">Iniciá sesión</a></p>
+    </div>
+
+    <!-- NUEVA CONTRASEÑA (post-recovery) -->
+    <div id="authNewPassword" style="display:none">
+      <div class="auth-icon">
+        <div class="auth-icon-circle auth-icon-lock">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+      </div>
+      <div class="auth-title">Nueva contraseña</div>
+      <p class="auth-sub">Definí tu nueva contraseña para continuar</p>
+      <input class="client-input" id="newPassword" type="password" placeholder="Nueva contraseña (mín. 6 caracteres)">
+      <input class="client-input" id="newPassword2" type="password" placeholder="Repetir contraseña">
+      <div class="auth-error" id="newPasswordError"></div>
+      <button class="client-btn confirm" id="newPasswordBtn" onclick="handleSetNewPassword()">Guardar nueva contraseña</button>
     </div>
 
     <!-- PENDIENTE -->

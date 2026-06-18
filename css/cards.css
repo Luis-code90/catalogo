@@ -174,3 +174,16 @@
   min-width: 24px; text-align: center;
   font-size: .95rem; font-weight: 600; color: var(--deep);
 }
+.canal-filters {
+  grid-column: 1 / -1;
+  display: flex; gap: .5rem; flex-wrap: wrap;
+  padding: 0 0 1rem;
+}
+.cnf {
+  padding: .45rem 1rem; border-radius: 999px;
+  border: 1.5px solid var(--frost); background: #fff;
+  color: var(--text); font-family: 'Sora', sans-serif;
+  font-size: .8rem; cursor: pointer; transition: all .2s;
+}
+.cnf:hover { border-color: var(--muted); }
+.cnf.active { background: var(--deep); color: #fff; border-color: var(--deep); font-weight: 600; }

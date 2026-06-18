@@ -101,7 +101,16 @@ export function updateHeaderUI(displayName = null) {
   }
 }
 
-export function renderPromos(promociones, productos) {
+function matchCanal(canalStr, filtro) {
+  const c = canalStr.toUpperCase();
+  if (filtro === 'mayoristas') return c.includes('MAYORISTA');
+  if (filtro === 'gdc') return c.includes('GRUPOS DE COMPRA') || c.includes('GDC');
+  if (filtro === 'autoservicio') return c.includes('AUTOSERVICIO');
+  if (filtro === 'tradicional') return c.includes('TRADICIONAL');
+  return true;
+}
+
+export function renderPromos(promociones, productos, canalFiltro = 'todos') {
   const grid  = document.getElementById('grid');
   const empty = document.getElementById('empty');
   const lbl   = document.getElementById('countLbl');
@@ -109,18 +118,35 @@ export function renderPromos(promociones, productos) {
   grid.innerHTML = '';
   empty.classList.remove('show');
 
-  const activas = promociones.filter(pr => pr.activa);
+  let activas = promociones.filter(pr => pr.activa);
+  if (canalFiltro !== 'todos') {
+    activas = activas.filter(pr => matchCanal(pr.canal, canalFiltro));
+  }
+
   lbl.textContent = activas.length + ' promociones activas';
 
-  if (!activas.length) {
-    empty.classList.add('show');
-    return;
-  }
+  document.querySelectorAll('.promo-back-btn, .canal-filters').forEach(el => el.remove());
 
   const backBtn = document.createElement('div');
   backBtn.className = 'promo-back-btn';
   backBtn.innerHTML = `<button onclick="window.volverCatalogo()">← Volver al catálogo</button>`;
   grid.before(backBtn);
+
+  const canalFilters = document.createElement('div');
+  canalFilters.className = 'canal-filters';
+  canalFilters.innerHTML = `
+    <button class="cnf ${canalFiltro === 'todos' ? 'active' : ''}" data-canal="todos">Todos</button>
+    <button class="cnf ${canalFiltro === 'mayoristas' ? 'active' : ''}" data-canal="mayoristas">Mayoristas</button>
+    <button class="cnf ${canalFiltro === 'autoservicio' ? 'active' : ''}" data-canal="autoservicio">Autoservicios y Petroleras</button>
+    <button class="cnf ${canalFiltro === 'tradicional' ? 'active' : ''}" data-canal="tradicional">Tradicional</button>
+    <button class="cnf ${canalFiltro === 'gdc' ? 'active' : ''}" data-canal="gdc">Grupos de Compra</button>
+  `;
+  grid.before(canalFilters);
+
+  if (!activas.length) {
+    empty.classList.add('show');
+    return;
+  }
 
   activas.forEach((pr, i) => {
     const p = productos.find(p => p.id === pr.producto_id);
@@ -166,6 +192,12 @@ export function renderPromos(promociones, productos) {
       </div>`;
 
     grid.appendChild(card);
+  });
+
+  canalFilters.querySelectorAll('.cnf').forEach(btn => {
+    btn.addEventListener('click', () => {
+      window.renderPromosFiltered(btn.dataset.canal);
+    });
   });
 }
 

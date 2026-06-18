@@ -312,6 +312,11 @@
 .auth-terms a {
   color: var(--teal); text-decoration: underline;
 }
+.auth-forgot {
+  text-align: right; margin: -.5rem 0 .25rem; font-size: .8rem;
+}
+.auth-forgot a { color: var(--teal); text-decoration: none; }
+.auth-forgot a:hover { text-decoration: underline; }
 .promo-box-nuevos {
   background: linear-gradient(135deg, var(--ocean), var(--teal));
   border-radius: 20px; padding: 2rem;

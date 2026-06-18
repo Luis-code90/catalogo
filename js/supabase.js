@@ -176,3 +176,21 @@ export async function updateComercio(perfilId, datos) {
     .eq('perfil_id', perfilId);
   if (error) throw new Error(error.message);
 }
+
+export async function resetPassword(email) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname
+  });
+  if (error) throw new Error(error.message);
+}
+
+export function onAuthStateChange(callback) {
+  supabase.auth.onAuthStateChange((event, session) => {
+    callback(event, session);
+  });
+}
+
+export async function updatePassword(newPassword) {
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw new Error(error.message);
+}

@@ -1,8 +1,8 @@
-import { 
-  registerUser, loginUser, logoutUser, 
+import {
+  registerUser, loginUser, logoutUser,
   getCurrentUser, getPerfilByUserId,
   createPerfil, createComercio, createVendedorAsignado,
-  fetchEmpresa
+  fetchEmpresa, resetPassword, onAuthStateChange, updatePassword
 } from './supabase.js';
 import { setIsAdult, setCurrentUser, setCurrentPerfil, setUserRole, getVendors } from './state.js';
 import { filter } from './filters.js';
@@ -69,6 +69,82 @@ export function showAuthLogin() {
   document.getElementById('authLogin').style.display = 'block';
   document.getElementById('authRegister').style.display = 'none';
   document.getElementById('authPending').style.display = 'none';
+  document.getElementById('authForgot').style.display = 'none';
+}
+
+export function showForgotPassword() {
+  document.getElementById('authLogin').style.display = 'none';
+  document.getElementById('authRegister').style.display = 'none';
+  document.getElementById('authPending').style.display = 'none';
+  document.getElementById('authForgot').style.display = 'block';
+}
+
+export async function handleForgotPassword() {
+  const email = document.getElementById('forgotEmail').value.trim();
+  const errorEl = document.getElementById('forgotError');
+  const btn = document.getElementById('forgotBtn');
+
+  if (!email) {
+    errorEl.textContent = 'Ingresá tu email';
+    return;
+  }
+
+  btn.textContent = 'Enviando...';
+  btn.disabled = true;
+  errorEl.textContent = '';
+
+  try {
+    await resetPassword(email);
+    errorEl.style.color = '#16a34a';
+    errorEl.textContent = 'Te enviamos un email con instrucciones';
+  } catch (e) {
+    errorEl.style.color = '#e53e3e';
+    errorEl.textContent = 'Error al enviar el email. Verificá la dirección.';
+  }
+  btn.textContent = 'Enviar email';
+  btn.disabled = false;
+}
+
+export function listenForRecovery() {
+  onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      showSetNewPassword();
+    }
+  });
+}
+
+export function showSetNewPassword() {
+  document.getElementById('authLogin').style.display = 'none';
+  document.getElementById('authRegister').style.display = 'none';
+  document.getElementById('authPending').style.display = 'none';
+  document.getElementById('authForgot').style.display = 'none';
+  document.getElementById('authNewPassword').style.display = 'block';
+  document.getElementById('authOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+export async function handleSetNewPassword() {
+  const pass1 = document.getElementById('newPassword').value;
+  const pass2 = document.getElementById('newPassword2').value;
+  const errorEl = document.getElementById('newPasswordError');
+  const btn = document.getElementById('newPasswordBtn');
+  if (!pass1 || !pass2) { errorEl.textContent = 'Completá ambos campos'; return; }
+  if (pass1 !== pass2) { errorEl.textContent = 'Las contraseñas no coinciden'; return; }
+  if (pass1.length < 6) { errorEl.textContent = 'La contraseña debe tener al menos 6 caracteres'; return; }
+  btn.textContent = 'Guardando...';
+  btn.disabled = true;
+  errorEl.textContent = '';
+  try {
+    await updatePassword(pass1);
+    errorEl.style.color = '#16a34a';
+    errorEl.textContent = '✓ Contraseña actualizada';
+    setTimeout(() => { hideAuthOverlay(); location.reload(); }, 1200);
+  } catch (e) {
+    errorEl.style.color = '#e53e3e';
+    errorEl.textContent = 'Error al actualizar la contraseña';
+    btn.textContent = 'Guardar nueva contraseña';
+    btn.disabled = false;
+  }
 }
 
 export function showAuthRegister() {

@@ -1,4 +1,4 @@
-import { initAuth, handleLogin, handleRegister, handleLogout, showAuthLogin, showAuthRegister, continueAsGuest, showAuthOverlay } from './auth.js';
+import { initAuth, handleLogin, handleRegister, handleLogout, showAuthLogin, showAuthRegister, continueAsGuest, showAuthOverlay, showForgotPassword, handleForgotPassword, listenForRecovery, handleSetNewPassword, showSetNewPassword } from './auth.js';
 import { setProducts, getProducts, setIsAdult, setVendedores, setWhatsappPhone, setPromociones, getPromociones, getUserRole, getCurrentPerfil } from './state.js';
 import { fetchProductos, fetchVendedores, fetchEmpresa, fetchPromociones } from './supabase.js';
 import { updateCartUI } from './cart.js';
@@ -138,6 +138,11 @@ function verNuevosLanzamientos() {
 window.verNuevosLanzamientos = verNuevosLanzamientos;
 
 // ── PROMO FILTER ─────────────────────────────────────────
+function renderPromosFiltered(canal) {
+  renderPromos(getPromociones(), getProducts(), canal);
+}
+window.renderPromosFiltered = renderPromosFiltered;
+
 function filterByPromo() {
   renderPromos(getPromociones(), getProducts());
   document.getElementById('catFilters').style.display = 'none';
@@ -316,6 +321,9 @@ function setupEventListeners() {
 
 // ── INIT ─────────────────────────────────────────────────
 async function init() {
+  const isRecovery = window.location.hash.includes('type=recovery');
+
+  listenForRecovery();
   document.body.style.overflow = 'hidden';
   document.getElementById('ageOverlay').style.display = 'none';
   document.getElementById('loadingState').classList.add('show');
@@ -338,8 +346,9 @@ async function init() {
   filter();
   setupEventListeners();
 
-  // Guest flow handled in initAuth: shows auth overlay with guest entry button
-  // Age gate will be triggered by continueAsGuest()
+  if (isRecovery) {
+    showSetNewPassword();
+  }
 }
 
 init();
@@ -379,3 +388,6 @@ window.closeProfile = closeProfile;
 window.closeProfileBg = closeProfileBg;
 window.saveProfile = saveProfile;
 window.filterByPromo = filterByPromo;
+window.showForgotPassword = showForgotPassword;
+window.handleForgotPassword = handleForgotPassword;
+window.handleSetNewPassword = handleSetNewPassword;
