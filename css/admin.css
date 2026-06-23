@@ -1,0 +1,47 @@
+body { font-family: 'Sora', sans-serif; background: var(--light); margin: 0; }
+.admin-header {
+  background: var(--deep); color: #fff;
+  padding: 1rem 1.5rem; display: flex;
+  align-items: center; justify-content: space-between;
+}
+.admin-header h1 { font-size: 1.1rem; margin: 0; }
+.admin-back { color: var(--frost); text-decoration: none; font-size: .85rem; }
+.admin-main { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+.admin-denied-box {
+  max-width: 400px; margin: 4rem auto; text-align: center;
+  background: #fff; padding: 2rem; border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.1);
+}
+.admin-tabs { display: flex; gap: .5rem; margin-bottom: 1.5rem; }
+.admin-tab {
+  background: #fff; border: 1.5px solid var(--frost);
+  border-radius: 10px; padding: .6rem 1.2rem;
+  font-family: 'Sora', sans-serif; font-size: .85rem; cursor: pointer;
+}
+.admin-tab.active { background: var(--deep); color: #fff; border-color: var(--deep); }
+.admin-list { display: flex; flex-direction: column; gap: .75rem; }
+.admin-card {
+  background: #fff; border-radius: 12px; padding: 1rem 1.25rem;
+  display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,.05);
+}
+.admin-card-info { flex: 1; min-width: 200px; }
+.admin-card-name { font-weight: 600; color: var(--deep); }
+.admin-card-meta { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+.admin-rol-select,
+.admin-canal-select {
+  border: 1.5px solid var(--frost); border-radius: 8px;
+  padding: .5rem .75rem; font-family: 'Sora', sans-serif;
+  font-size: .82rem; background: #fff; color: var(--text);
+  cursor: pointer;
+}
+.admin-btn-approve {
+  background: var(--teal); color: #fff; border: none;
+  border-radius: 8px; padding: .55rem 1.1rem;
+  font-family: 'Sora', sans-serif; font-size: .82rem; font-weight: 600;
+  cursor: pointer;
+}
+.admin-loading, .admin-empty { text-align: center; color: var(--muted); padding: 2rem; }
+.admin-approve-controls {
+  display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+}

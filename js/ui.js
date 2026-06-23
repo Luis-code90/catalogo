@@ -205,6 +205,9 @@ export function updateUIForRole(role, perfil) {
   const carousel = document.getElementById('promoCarousel');
   if (carousel) carousel.style.display = role === 'authenticated' ? 'block' : 'none';
 
+  const adminLink = document.getElementById('headerAdminLink');
+  if (adminLink) adminLink.style.display = (role === 'authenticated' && perfil?.rol === 'admin') ? 'flex' : 'none';
+
   const pill = document.getElementById('heroPill');
   const sub  = document.getElementById('heroSub');
   if (role === 'authenticated' && perfil) {

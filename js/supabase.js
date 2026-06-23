@@ -190,6 +190,43 @@ export function onAuthStateChange(callback) {
   });
 }
 
+// ── ADMIN ─────────────────────────────────────────────────
+export async function fetchUsuariosPending(empresaId) {
+  const { data, error } = await supabase
+    .rpc('get_perfiles_pendientes', { p_empresa_id: empresaId });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function fetchUsuariosActivos(empresaId) {
+  const { data, error } = await supabase
+    .rpc('get_perfiles_activos', { p_empresa_id: empresaId });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function aprobarUsuario(perfilId, canal, rol) {
+  const { error } = await supabase
+    .rpc('update_perfil_admin', {
+      p_perfil_id: perfilId,
+      p_canal: canal || null,
+      p_estado: 'activo',
+      p_rol: rol
+    });
+  if (error) throw new Error(error.message);
+}
+
+export async function actualizarCanalUsuario(perfilId, canal, estado, rol) {
+  const { error } = await supabase
+    .rpc('update_perfil_admin', {
+      p_perfil_id: perfilId,
+      p_canal: canal,
+      p_estado: estado || 'activo',
+      p_rol: rol || 'cliente'
+    });
+  if (error) throw new Error(error.message);
+}
+
 export async function updatePassword(newPassword) {
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) throw new Error(error.message);

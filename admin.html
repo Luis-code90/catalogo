@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Admin — Mirlo SAS</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/variables.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/admin.css">
+<script type="importmap">
+{
+  "imports": {
+    "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"
+  }
+}
+</script>
+</head>
+<body>
+
+<div id="adminDenied" style="display:none">
+  <div class="admin-denied-box">
+    <h2>Acceso restringido</h2>
+    <p>No tenés permisos para ver esta página.</p>
+    <a href="/mirlosas">← Volver al catálogo</a>
+  </div>
+</div>
+
+<div id="adminPanel" style="display:none">
+  <header class="admin-header">
+    <h1>Panel Admin — Mirlo SAS</h1>
+    <a href="index.html" class="admin-back">← Volver al catálogo</a>
+  </header>
+  <main class="admin-main">
+    <div id="adminContent">Cargando...</div>
+  </main>
+</div>
+
+<script type="module" src="./js/admin.js"></script>
+</body>
+</html>
