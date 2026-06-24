@@ -271,10 +271,34 @@ Primera carga va a Supabase, recargas sirven desde caché. Se limpia al cerrar l
 - Botón "Ver →" del carrusel de nuevos lanzamientos conectado a verNuevosLanzamientos():
   muestra grid de cards sin precio con badge "NUEVO", botón "← Volver al catálogo".
 
+## Panel Admin
+Ruta: admin.html (mismo directorio que index.html)
+Acceso: solo usuarios con perfil.rol = 'admin' — redirige a index.html si no hay sesión,
+  muestra #adminDenied si no es admin.
+Link de acceso: ícono engranaje en header, visible solo si perfil.rol === 'admin' (ui.js)
+
+### Funciones RPC en Supabase (SECURITY DEFINER — bypass RLS):
+- get_perfiles_pendientes(p_empresa_id) — perfiles con estado = 'pendiente'
+- get_perfiles_activos(p_empresa_id) — perfiles con estado = 'activo', orden desc
+- update_perfil_admin(p_perfil_id, p_canal, p_estado, p_rol) — UPDATE bypass RLS
+
+### Tabs implementadas:
+- Usuarios pendientes: lista con selector de rol (cliente/vendedor/admin) y canal
+  condicional (solo si rol = 'cliente'). Botón "Aprobar" llama update_perfil_admin
+  con estado = 'activo'.
+- Usuarios activos: lista con nombre, email, comercio y selector de canal editable.
+  Admins filtrados. Cambio de canal guarda via update_perfil_admin automáticamente.
+
+### Columnas nuevas en tabla perfiles:
+- canal text — canal de distribución del cliente
+- rol text DEFAULT 'cliente' — valores: 'cliente', 'vendedor', 'admin'
+
+### Pendiente fase 2:
+- Gestión de promos (crear, editar, activar/desactivar)
+- Edición de precios de productos
+
 ## Pendientes
-- Filtrado de promos por canal (bloqueado hasta panel admin)
-- Asignación de canal por usuario desde panel admin
-- Panel admin para gestión de promos y usuarios
+- Filtrado de promos por canal del usuario (conectar canal del perfil con renderPromos)
 - fecha_lanzamiento en productos para ordenar y archivar lanzamientos
 
 ## Workflow de desarrollo
