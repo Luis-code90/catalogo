@@ -281,6 +281,11 @@ Link de acceso: ícono engranaje en header, visible solo si perfil.rol === 'admi
 - get_perfiles_pendientes(p_empresa_id) — perfiles con estado = 'pendiente'
 - get_perfiles_activos(p_empresa_id) — perfiles con estado = 'activo', orden desc
 - update_perfil_admin(p_perfil_id, p_canal, p_estado, p_rol) — UPDATE bypass RLS
+- toggle_promocion(p_id, p_activa) — UPDATE activa en promociones
+- upsert_promocion(p_id, p_empresa_id, p_producto_id, p_codigo, p_nombre,
+    p_tipo_promo, p_descuento_pct, p_drop_size, p_drop_cantidad, p_canal,
+    p_fecha_inicio, p_fecha_fin, p_activa) — INSERT/UPDATE bypass RLS
+- delete_promocion(p_id) — DELETE bypass RLS
 
 ### Tabs implementadas:
 - Usuarios pendientes: lista con selector de rol (cliente/vendedor/admin) y canal
@@ -288,14 +293,18 @@ Link de acceso: ícono engranaje en header, visible solo si perfil.rol === 'admi
   con estado = 'activo'.
 - Usuarios activos: lista con nombre, email, comercio y selector de canal editable.
   Admins filtrados. Cambio de canal guarda via update_perfil_admin automáticamente.
+- Promociones: listado con imagen, badge activa/inactiva, tipo, canal y fechas.
+  Toggle activar/desactivar via RPC toggle_promocion.
+  Formulario crear/editar con checkboxes de canal múltiple.
+  Eliminar via RPC delete_promocion con confirm() nativo.
+  Caché sessionStorage de promociones se limpia automáticamente tras cada cambio.
 
 ### Columnas nuevas en tabla perfiles:
 - canal text — canal de distribución del cliente
 - rol text DEFAULT 'cliente' — valores: 'cliente', 'vendedor', 'admin'
 
-### Pendiente fase 2:
-- Gestión de promos (crear, editar, activar/desactivar)
-- Edición de precios de productos
+### Pendiente fase 3:
+- Edición de precios de productos desde panel admin
 
 ## Pendientes
 - Filtrado de promos por canal del usuario (conectar canal del perfil con renderPromos)

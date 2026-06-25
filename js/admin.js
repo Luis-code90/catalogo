@@ -1,4 +1,4 @@
-import { getCurrentUser, getPerfilByUserId, fetchUsuariosPending, fetchUsuariosActivos, aprobarUsuario, actualizarCanalUsuario } from './supabase.js';
+import { getCurrentUser, getPerfilByUserId, fetchUsuariosPending, fetchUsuariosActivos, aprobarUsuario, actualizarCanalUsuario, fetchPromocionesAdmin, togglePromocion, upsertPromocion, fetchProductosAdmin, deletePromocion } from './supabase.js';
 
 const CANALES = [
   { value: '', label: '— Seleccionar canal —' },
@@ -31,6 +31,7 @@ function renderTabs() {
     <div class="admin-tabs">
       <button class="admin-tab active" data-tab="pendientes">Usuarios pendientes</button>
       <button class="admin-tab" data-tab="activos">Usuarios activos</button>
+      <button class="admin-tab" data-tab="promos">Promociones</button>
     </div>
     <div id="adminTabContent"></div>
   `;
@@ -39,7 +40,8 @@ function renderTabs() {
       document.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       if (btn.dataset.tab === 'pendientes') loadPendientes();
-      else loadActivos();
+      else if (btn.dataset.tab === 'activos') loadActivos();
+      else if (btn.dataset.tab === 'promos') loadPromos();
     });
   });
 }
@@ -148,6 +150,190 @@ async function loadActivos() {
     });
   });
 }
+
+async function loadPromos() {
+  const container = document.getElementById('adminTabContent');
+  container.innerHTML = '<p class="admin-loading">Cargando...</p>';
+  const promos = await fetchPromocionesAdmin(empresaId);
+
+  container.innerHTML = `
+    <div class="admin-promo-header">
+      <h3>Promociones (${promos.length})</h3>
+      <button class="admin-btn-new" onclick="window.showPromoForm()">+ Nueva promo</button>
+    </div>
+    <div id="promoFormContainer"></div>
+    <div class="admin-list">
+      ${promos.map(pr => `
+        <div class="admin-card ${pr.activa ? '' : 'admin-card-inactive'}">
+          <div class="admin-card-img">
+            ${pr.productos?.img ? `<img src="${pr.productos.img}" alt="">` : '📦'}
+          </div>
+          <div class="admin-card-info">
+            <div class="admin-card-name">${pr.productos?.brand || ''} ${pr.productos?.name || pr.nombre}</div>
+            <div class="admin-card-meta">
+              ${pr.tipo_promo} · ${pr.drop_size} · ${pr.canal}
+            </div>
+            <div class="admin-card-meta">
+              ${pr.fecha_inicio} → ${pr.fecha_fin}
+            </div>
+          </div>
+          <div class="admin-card-actions">
+            <span class="admin-badge ${pr.activa ? 'admin-badge-active' : 'admin-badge-inactive'}">
+              ${pr.activa ? 'Activa' : 'Inactiva'}
+            </span>
+            <button class="admin-btn-toggle ${pr.activa ? 'admin-btn-off' : 'admin-btn-on'}"
+              data-id="${pr.id}" data-activa="${pr.activa}">
+              ${pr.activa ? 'Desactivar' : 'Activar'}
+            </button>
+            <button class="admin-btn-edit" data-id="${pr.id}">Editar</button>
+            <button class="admin-btn-delete" data-id="${pr.id}">Eliminar</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  container.querySelectorAll('.admin-btn-toggle').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const activa = btn.dataset.activa === 'true';
+      btn.disabled = true;
+      await togglePromocion(parseInt(btn.dataset.id), !activa);
+      loadPromos();
+    });
+  });
+
+  container.querySelectorAll('.admin-btn-edit').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const promo = promos.find(p => p.id === parseInt(btn.dataset.id));
+      showPromoForm(promo);
+    });
+  });
+
+  container.querySelectorAll('.admin-btn-delete').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('¿Seguro que querés eliminar esta promo? Esta acción no se puede deshacer.')) return;
+      btn.disabled = true;
+      await deletePromocion(parseInt(btn.dataset.id));
+      loadPromos();
+    });
+  });
+}
+
+async function showPromoForm(promo = null) {
+  const productos = await fetchProductosAdmin(empresaId);
+  const isEdit = !!promo;
+
+  const formHtml = `
+    <div class="admin-promo-form">
+      <h4>${isEdit ? 'Editar promo' : 'Nueva promo'}</h4>
+      <div class="admin-form-grid">
+        <div class="admin-form-group">
+          <label>Producto</label>
+          <select id="pf-producto">
+            <option value="">— Seleccioná —</option>
+            ${productos.map(p => `<option value="${p.id}" ${promo?.producto_id === p.id ? 'selected' : ''}>${p.brand} ${p.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="admin-form-group">
+          <label>Código combo</label>
+          <input id="pf-codigo" type="text" value="${promo?.codigo || ''}">
+        </div>
+        <div class="admin-form-group">
+          <label>Tipo promo (badge)</label>
+          <input id="pf-tipo" type="text" placeholder="ej: 9.63% OFF, 6x5, 5+1" value="${promo?.tipo_promo || ''}">
+        </div>
+        <div class="admin-form-group">
+          <label>Descuento %</label>
+          <input id="pf-descuento" type="number" step="0.01" value="${promo?.descuento_pct || ''}">
+        </div>
+        <div class="admin-form-group">
+          <label>Drop size (texto)</label>
+          <input id="pf-dropsize" type="text" placeholder="ej: 2 SIX PACK" value="${promo?.drop_size || ''}">
+        </div>
+        <div class="admin-form-group">
+          <label>Drop cantidad (unidades)</label>
+          <input id="pf-dropcantidad" type="number" value="${promo?.drop_cantidad || ''}">
+        </div>
+        <div class="admin-form-group admin-form-group-full">
+          <label>Canal</label>
+          <div class="admin-canal-checks">
+            ${[
+              { value: 'MAYORISTAS', label: 'Mayoristas' },
+              { value: 'AUTOSERVICIO Y PETROLERAS', label: 'Autoservicios y Petroleras' },
+              { value: 'TRADICIONAL', label: 'Tradicional' },
+              { value: 'GRUPOS DE COMPRA', label: 'Grupos de Compra' }
+            ].map(c => `
+              <label class="admin-check-label">
+                <input type="checkbox" class="pf-canal-check" value="${c.value}"
+                  ${promo?.canal?.includes(c.value) ? 'checked' : ''}>
+                ${c.label}
+              </label>
+            `).join('')}
+          </div>
+        </div>
+        <div class="admin-form-group">
+          <label>Fecha inicio</label>
+          <input id="pf-inicio" type="date" value="${promo?.fecha_inicio || ''}">
+        </div>
+        <div class="admin-form-group">
+          <label>Fecha fin</label>
+          <input id="pf-fin" type="date" value="${promo?.fecha_fin || ''}">
+        </div>
+      </div>
+      <div class="admin-form-actions">
+        <button class="admin-btn-cancel" onclick="loadPromos()">Cancelar</button>
+        <button class="admin-btn-save" onclick="window.savePromo(${promo?.id || 'null'})">
+          ${isEdit ? 'Guardar cambios' : 'Crear promo'}
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('promoFormContainer').innerHTML = formHtml;
+  document.getElementById('promoFormContainer').scrollIntoView({ behavior: 'smooth' });
+}
+
+window.showPromoForm = () => showPromoForm();
+window.loadPromos = loadPromos;
+
+window.savePromo = async function(id) {
+  const productoId = parseInt(document.getElementById('pf-producto').value);
+  const codigo = document.getElementById('pf-codigo').value.trim();
+  const tipo = document.getElementById('pf-tipo').value.trim();
+  const descuento = parseFloat(document.getElementById('pf-descuento').value);
+  const dropSize = document.getElementById('pf-dropsize').value.trim();
+  const dropCantidad = parseInt(document.getElementById('pf-dropcantidad').value);
+  const canalesSeleccionados = [...document.querySelectorAll('.pf-canal-check:checked')]
+    .map(cb => cb.value);
+  const canal = canalesSeleccionados.join(' + ');
+  const inicio = document.getElementById('pf-inicio').value;
+  const fin = document.getElementById('pf-fin').value;
+
+  if (!productoId || !tipo || !descuento || !dropSize || !dropCantidad || !canalesSeleccionados.length || !inicio || !fin) {
+    alert('Completá todos los campos obligatorios');
+    return;
+  }
+
+  const promo = {
+    empresa_id: empresaId,
+    producto_id: productoId,
+    codigo,
+    nombre: document.getElementById('pf-producto').options[document.getElementById('pf-producto').selectedIndex].text,
+    tipo_promo: tipo,
+    descuento_pct: descuento,
+    drop_size: dropSize,
+    drop_cantidad: dropCantidad,
+    canal,
+    fecha_inicio: inicio,
+    fecha_fin: fin,
+    activa: true
+  };
+
+  if (id) promo.id = id;
+
+  await upsertPromocion(promo);
+  loadPromos();
+};
 
 window.toggleCanal = function(id) {
   const rol = document.getElementById(`rol-${id}`).value;

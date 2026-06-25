@@ -231,3 +231,67 @@ export async function updatePassword(newPassword) {
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) throw new Error(error.message);
 }
+
+export async function fetchPromocionesAdmin(empresaId) {
+  const { data, error } = await supabase
+    .from('promociones')
+    .select('*, productos(name, brand, img)')
+    .eq('empresa_id', empresaId)
+    .order('activa', { ascending: false })
+    .order('id', { ascending: false });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function togglePromocion(id, activa) {
+  const { error } = await supabase
+    .rpc('toggle_promocion', { p_id: id, p_activa: activa });
+  if (error) throw new Error(error.message);
+  Object.keys(sessionStorage)
+    .filter(k => k.startsWith('mirlo_promociones_'))
+    .forEach(k => sessionStorage.removeItem(k));
+}
+
+export async function upsertPromocion(promo) {
+  const { error } = await supabase
+    .rpc('upsert_promocion', {
+      p_id: promo.id || null,
+      p_empresa_id: promo.empresa_id,
+      p_producto_id: promo.producto_id,
+      p_codigo: promo.codigo || '',
+      p_nombre: promo.nombre || '',
+      p_tipo_promo: promo.tipo_promo,
+      p_descuento_pct: promo.descuento_pct,
+      p_drop_size: promo.drop_size,
+      p_drop_cantidad: promo.drop_cantidad,
+      p_canal: promo.canal,
+      p_fecha_inicio: promo.fecha_inicio,
+      p_fecha_fin: promo.fecha_fin,
+      p_activa: promo.activa ?? true
+    });
+  if (error) throw new Error(error.message);
+  Object.keys(sessionStorage)
+    .filter(k => k.startsWith('mirlo_promociones_'))
+    .forEach(k => sessionStorage.removeItem(k));
+}
+
+export async function fetchProductosAdmin(empresaId) {
+  const { data, error } = await supabase
+    .from('productos')
+    .select('id, name, brand, cat')
+    .eq('empresa_id', empresaId)
+    .eq('activo', true)
+    .order('brand')
+    .order('name');
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function deletePromocion(id) {
+  const { error } = await supabase
+    .rpc('delete_promocion', { p_id: id });
+  if (error) throw new Error(error.message);
+  Object.keys(sessionStorage)
+    .filter(k => k.startsWith('mirlo_promociones_'))
+    .forEach(k => sessionStorage.removeItem(k));
+}
