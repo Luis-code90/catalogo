@@ -5,6 +5,12 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+function clearSessionCache(prefix) {
+  Object.keys(sessionStorage)
+    .filter(k => k.startsWith(prefix))
+    .forEach(k => sessionStorage.removeItem(k));
+}
+
 // ── EMPRESA ──────────────────────────────────────────────
 export async function fetchEmpresa(slug) {
   const key = `mirlo_empresa_${slug}`;
@@ -247,9 +253,7 @@ export async function togglePromocion(id, activa) {
   const { error } = await supabase
     .rpc('toggle_promocion', { p_id: id, p_activa: activa });
   if (error) throw new Error(error.message);
-  Object.keys(sessionStorage)
-    .filter(k => k.startsWith('mirlo_promociones_'))
-    .forEach(k => sessionStorage.removeItem(k));
+  clearSessionCache('mirlo_promociones_');
 }
 
 export async function upsertPromocion(promo) {
@@ -270,9 +274,7 @@ export async function upsertPromocion(promo) {
       p_activa: promo.activa ?? true
     });
   if (error) throw new Error(error.message);
-  Object.keys(sessionStorage)
-    .filter(k => k.startsWith('mirlo_promociones_'))
-    .forEach(k => sessionStorage.removeItem(k));
+  clearSessionCache('mirlo_promociones_');
 }
 
 export async function fetchProductosAdmin(empresaId) {
@@ -282,6 +284,7 @@ export async function fetchProductosAdmin(empresaId) {
     .eq('empresa_id', empresaId)
     .order('cat')
     .order('brand')
+    .order('activo', { ascending: false })
     .order('name');
   if (error) throw new Error(error.message);
   return data;
@@ -291,16 +294,12 @@ export async function updatePrecioProducto(id, pcom, ppub) {
   const { error } = await supabase
     .rpc('update_precio_producto', { p_id: id, p_pcom: pcom, p_ppub: ppub });
   if (error) throw new Error(error.message);
-  Object.keys(sessionStorage)
-    .filter(k => k.startsWith('mirlo_productos_'))
-    .forEach(k => sessionStorage.removeItem(k));
+  clearSessionCache('mirlo_productos_');
 }
 
 export async function deletePromocion(id) {
   const { error } = await supabase
     .rpc('delete_promocion', { p_id: id });
   if (error) throw new Error(error.message);
-  Object.keys(sessionStorage)
-    .filter(k => k.startsWith('mirlo_promociones_'))
-    .forEach(k => sessionStorage.removeItem(k));
+  clearSessionCache('mirlo_promociones_');
 }

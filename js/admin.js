@@ -51,174 +51,192 @@ function renderTabs() {
 async function loadPendientes() {
   const container = document.getElementById('adminTabContent');
   container.innerHTML = '<p class="admin-loading">Cargando...</p>';
-  const pendientes = await fetchUsuariosPending(empresaId);
+  try {
+    const pendientes = await fetchUsuariosPending(empresaId);
 
-  if (!pendientes.length) {
-    container.innerHTML = '<p class="admin-empty">No hay usuarios pendientes de aprobación.</p>';
-    return;
-  }
+    if (!pendientes.length) {
+      container.innerHTML = '<p class="admin-empty">No hay usuarios pendientes de aprobación.</p>';
+      return;
+    }
 
-  container.innerHTML = `
-    <div class="admin-list">
-      ${pendientes.map(p => `
-        <div class="admin-card" data-perfil-id="${p.id}">
-          <div class="admin-card-info">
-            <div class="admin-card-name">${p.email}</div>
-            <div class="admin-card-meta">Registrado: ${new Date(p.created_at).toLocaleDateString('es-UY')}</div>
+    container.innerHTML = `
+      <div class="admin-list">
+        ${pendientes.map(p => `
+          <div class="admin-card" data-perfil-id="${p.id}">
+            <div class="admin-card-info">
+              <div class="admin-card-name">${p.email}</div>
+              <div class="admin-card-meta">Registrado: ${new Date(p.created_at).toLocaleDateString('es-UY')}</div>
+            </div>
+            <div class="admin-approve-controls">
+              <select class="admin-rol-select" id="rol-${p.id}" onchange="toggleCanal('${p.id}')">
+                <option value="">— Seleccionar rol —</option>
+                <option value="cliente">Cliente</option>
+                <option value="vendedor">Vendedor</option>
+                <option value="admin">Administrativo</option>
+              </select>
+              <select class="admin-canal-select" id="canal-${p.id}" style="display:none">
+                <option value="">— Seleccionar canal —</option>
+                <option value="MAYORISTAS">Mayoristas</option>
+                <option value="AUTOSERVICIO Y PETROLERAS">Autoservicios y Petroleras</option>
+                <option value="TRADICIONAL">Tradicional</option>
+                <option value="GRUPOS DE COMPRA">Grupos de Compra</option>
+              </select>
+              <button class="admin-btn-approve" data-id="${p.id}">Aprobar</button>
+            </div>
           </div>
-          <div class="admin-approve-controls">
-            <select class="admin-rol-select" id="rol-${p.id}" onchange="toggleCanal('${p.id}')">
-              <option value="">— Seleccionar rol —</option>
-              <option value="cliente">Cliente</option>
-              <option value="vendedor">Vendedor</option>
-              <option value="admin">Administrativo</option>
-            </select>
-            <select class="admin-canal-select" id="canal-${p.id}" style="display:none">
-              <option value="">— Seleccionar canal —</option>
-              <option value="MAYORISTAS">Mayoristas</option>
-              <option value="AUTOSERVICIO Y PETROLERAS">Autoservicios y Petroleras</option>
-              <option value="TRADICIONAL">Tradicional</option>
-              <option value="GRUPOS DE COMPRA">Grupos de Compra</option>
-            </select>
-            <button class="admin-btn-approve" data-id="${p.id}">Aprobar</button>
-          </div>
-        </div>
-      `).join('')}
-    </div>
-  `;
+        `).join('')}
+      </div>
+    `;
 
-  container.querySelectorAll('.admin-btn-approve').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const id = btn.dataset.id;
-      const rol = document.getElementById(`rol-${id}`).value;
-      const canal = document.getElementById(`canal-${id}`).value;
+    container.querySelectorAll('.admin-btn-approve').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        const rol = document.getElementById(`rol-${id}`).value;
+        const canal = document.getElementById(`canal-${id}`).value;
 
-      if (!rol) {
-        alert('Seleccioná un rol antes de aprobar');
-        return;
-      }
-      if (rol === 'cliente' && !canal) {
-        alert('Seleccioná un canal para el cliente');
-        return;
-      }
+        const errorMsg = btn.closest('.admin-card').querySelector('.admin-inline-error')
+          || (() => { const el = document.createElement('p'); el.className = 'admin-inline-error'; btn.before(el); return el; })();
+        if (!rol) {
+          errorMsg.textContent = 'Seleccioná un rol antes de aprobar';
+          return;
+        }
+        if (rol === 'cliente' && !canal) {
+          errorMsg.textContent = 'Seleccioná un canal para el cliente';
+          return;
+        }
+        errorMsg.textContent = '';
 
-      btn.textContent = 'Aprobando...';
-      btn.disabled = true;
-      try {
-        await aprobarUsuario(id, canal, rol);
-        await loadPendientes();
-      } catch (e) {
-        alert('Error al aprobar usuario');
-        btn.textContent = 'Aprobar';
-        btn.disabled = false;
-      }
+        btn.textContent = 'Aprobando...';
+        btn.disabled = true;
+        try {
+          await aprobarUsuario(id, canal, rol);
+          await loadPendientes();
+        } catch (e) {
+          alert('Error al aprobar usuario');
+          btn.textContent = 'Aprobar';
+          btn.disabled = false;
+        }
+      });
     });
-  });
+  } catch (e) {
+    container.innerHTML = '<p class="admin-empty">Error al cargar datos. Intentá de nuevo.</p>';
+    console.error(e);
+  }
 }
 
 async function loadActivos() {
   const container = document.getElementById('adminTabContent');
   container.innerHTML = '<p class="admin-loading">Cargando...</p>';
-  const activos = await fetchUsuariosActivos(empresaId);
+  try {
+    const activos = await fetchUsuariosActivos(empresaId);
 
-  const filtrados = activos.filter(p => p.rol !== 'admin');
+    const filtrados = activos.filter(p => p.rol !== 'admin');
 
-  if (!filtrados.length) {
-    container.innerHTML = '<p class="admin-empty">No hay usuarios activos.</p>';
-    return;
-  }
+    if (!filtrados.length) {
+      container.innerHTML = '<p class="admin-empty">No hay usuarios activos.</p>';
+      return;
+    }
 
-  container.innerHTML = `
-    <div class="admin-list">
-      ${filtrados.map(p => `
-        <div class="admin-card" data-perfil-id="${p.id}">
-          <div class="admin-card-info">
-            <div class="admin-card-name">${p.nombre} ${p.apellido || ''}</div>
-            <div class="admin-card-meta">${p.email} · ${p.comercios?.nombre_comercial || '—'}</div>
+    container.innerHTML = `
+      <div class="admin-list">
+        ${filtrados.map(p => `
+          <div class="admin-card" data-perfil-id="${p.id}">
+            <div class="admin-card-info">
+              <div class="admin-card-name">${p.nombre} ${p.apellido || ''}</div>
+              <div class="admin-card-meta">${p.email} · ${p.comercios?.nombre_comercial || '—'}</div>
+            </div>
+            <select class="admin-canal-select" data-id="${p.id}" data-estado="${p.estado}" data-rol="${p.rol}">
+              ${CANALES.map(c => `<option value="${c.value}" ${p.canal === c.value ? 'selected' : ''}>${c.label}</option>`).join('')}
+            </select>
           </div>
-          <select class="admin-canal-select" data-id="${p.id}" data-estado="${p.estado}" data-rol="${p.rol}">
-            ${CANALES.map(c => `<option value="${c.value}" ${p.canal === c.value ? 'selected' : ''}>${c.label}</option>`).join('')}
-          </select>
-        </div>
-      `).join('')}
-    </div>
-  `;
+        `).join('')}
+      </div>
+    `;
 
-  container.querySelectorAll('.admin-canal-select').forEach(sel => {
-    sel.addEventListener('change', async () => {
-      await actualizarCanalUsuario(sel.dataset.id, sel.value, sel.dataset.estado, sel.dataset.rol);
-      sel.style.borderColor = '#16a34a';
-      setTimeout(() => sel.style.borderColor = '', 800);
+    container.querySelectorAll('.admin-canal-select').forEach(sel => {
+      sel.addEventListener('change', async () => {
+        await actualizarCanalUsuario(sel.dataset.id, sel.value, sel.dataset.estado, sel.dataset.rol);
+        sel.style.borderColor = '#16a34a';
+        setTimeout(() => sel.style.borderColor = '', 800);
+      });
     });
-  });
+  } catch (e) {
+    container.innerHTML = '<p class="admin-empty">Error al cargar datos. Intentá de nuevo.</p>';
+    console.error(e);
+  }
 }
 
 async function loadPromos() {
   const container = document.getElementById('adminTabContent');
   container.innerHTML = '<p class="admin-loading">Cargando...</p>';
-  const promos = await fetchPromocionesAdmin(empresaId);
+  try {
+    const promos = await fetchPromocionesAdmin(empresaId);
 
-  container.innerHTML = `
-    <div class="admin-promo-header">
-      <h3>Promociones (${promos.length})</h3>
-      <button class="admin-btn-new" onclick="window.showPromoForm()">+ Nueva promo</button>
-    </div>
-    <div id="promoFormContainer"></div>
-    <div class="admin-list">
-      ${promos.map(pr => `
-        <div class="admin-card ${pr.activa ? '' : 'admin-card-inactive'}">
-          <div class="admin-card-img">
-            ${pr.productos?.img ? `<img src="${pr.productos.img}" alt="">` : '📦'}
-          </div>
-          <div class="admin-card-info">
-            <div class="admin-card-name">${pr.productos?.brand || ''} ${pr.productos?.name || pr.nombre}</div>
-            <div class="admin-card-meta">
-              ${pr.tipo_promo} · ${pr.drop_size} · ${pr.canal}
+    container.innerHTML = `
+      <div class="admin-promo-header">
+        <h3>Promociones (${promos.length})</h3>
+        <button class="admin-btn-new" onclick="window.showPromoForm()">+ Nueva promo</button>
+      </div>
+      <div id="promoFormContainer"></div>
+      <div class="admin-list">
+        ${promos.map(pr => `
+          <div class="admin-card ${pr.activa ? '' : 'admin-card-inactive'}">
+            <div class="admin-card-img">
+              ${pr.productos?.img ? `<img src="${pr.productos.img}" alt="">` : '📦'}
             </div>
-            <div class="admin-card-meta">
-              ${pr.fecha_inicio} → ${pr.fecha_fin}
+            <div class="admin-card-info">
+              <div class="admin-card-name">${pr.productos?.brand || ''} ${pr.productos?.name || pr.nombre}</div>
+              <div class="admin-card-meta">
+                ${pr.tipo_promo} · ${pr.drop_size} · ${pr.canal}
+              </div>
+              <div class="admin-card-meta">
+                ${pr.fecha_inicio} → ${pr.fecha_fin}
+              </div>
+            </div>
+            <div class="admin-card-actions">
+              <span class="admin-badge ${pr.activa ? 'admin-badge-active' : 'admin-badge-inactive'}">
+                ${pr.activa ? 'Activa' : 'Inactiva'}
+              </span>
+              <button class="admin-btn-toggle ${pr.activa ? 'admin-btn-off' : 'admin-btn-on'}"
+                data-id="${pr.id}" data-activa="${pr.activa}">
+                ${pr.activa ? 'Desactivar' : 'Activar'}
+              </button>
+              <button class="admin-btn-edit" data-id="${pr.id}">Editar</button>
+              <button class="admin-btn-delete" data-id="${pr.id}">Eliminar</button>
             </div>
           </div>
-          <div class="admin-card-actions">
-            <span class="admin-badge ${pr.activa ? 'admin-badge-active' : 'admin-badge-inactive'}">
-              ${pr.activa ? 'Activa' : 'Inactiva'}
-            </span>
-            <button class="admin-btn-toggle ${pr.activa ? 'admin-btn-off' : 'admin-btn-on'}"
-              data-id="${pr.id}" data-activa="${pr.activa}">
-              ${pr.activa ? 'Desactivar' : 'Activar'}
-            </button>
-            <button class="admin-btn-edit" data-id="${pr.id}">Editar</button>
-            <button class="admin-btn-delete" data-id="${pr.id}">Eliminar</button>
-          </div>
-        </div>
-      `).join('')}
-    </div>
-  `;
+        `).join('')}
+      </div>
+    `;
 
-  container.querySelectorAll('.admin-btn-toggle').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const activa = btn.dataset.activa === 'true';
-      btn.disabled = true;
-      await togglePromocion(parseInt(btn.dataset.id), !activa);
-      loadPromos();
+    container.querySelectorAll('.admin-btn-toggle').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const activa = btn.dataset.activa === 'true';
+        btn.disabled = true;
+        await togglePromocion(parseInt(btn.dataset.id), !activa);
+        loadPromos();
+      });
     });
-  });
 
-  container.querySelectorAll('.admin-btn-edit').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const promo = promos.find(p => p.id === parseInt(btn.dataset.id));
-      showPromoForm(promo);
+    container.querySelectorAll('.admin-btn-edit').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const promo = promos.find(p => p.id === parseInt(btn.dataset.id));
+        showPromoForm(promo);
+      });
     });
-  });
 
-  container.querySelectorAll('.admin-btn-delete').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      if (!confirm('¿Seguro que querés eliminar esta promo? Esta acción no se puede deshacer.')) return;
-      btn.disabled = true;
-      await deletePromocion(parseInt(btn.dataset.id));
-      loadPromos();
+    container.querySelectorAll('.admin-btn-delete').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('¿Seguro que querés eliminar esta promo? Esta acción no se puede deshacer.')) return;
+        btn.disabled = true;
+        await deletePromocion(parseInt(btn.dataset.id));
+        loadPromos();
+      });
     });
-  });
+  } catch (e) {
+    container.innerHTML = '<p class="admin-empty">Error al cargar datos. Intentá de nuevo.</p>';
+    console.error(e);
+  }
 }
 
 async function showPromoForm(promo = null) {
@@ -259,12 +277,7 @@ async function showPromoForm(promo = null) {
         <div class="admin-form-group admin-form-group-full">
           <label>Canal</label>
           <div class="admin-canal-checks">
-            ${[
-              { value: 'MAYORISTAS', label: 'Mayoristas' },
-              { value: 'AUTOSERVICIO Y PETROLERAS', label: 'Autoservicios y Petroleras' },
-              { value: 'TRADICIONAL', label: 'Tradicional' },
-              { value: 'GRUPOS DE COMPRA', label: 'Grupos de Compra' }
-            ].map(c => `
+            ${CANALES.filter(c => c.value).map(c => `
               <label class="admin-check-label">
                 <input type="checkbox" class="pf-canal-check" value="${c.value}"
                   ${promo?.canal?.includes(c.value) ? 'checked' : ''}>
@@ -299,6 +312,9 @@ window.showPromoForm = () => showPromoForm();
 window.loadPromos = loadPromos;
 
 window.savePromo = async function(id) {
+  const saveBtn = document.querySelector('.admin-btn-save');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Guardando...'; }
+
   const productoId = parseInt(document.getElementById('pf-producto').value);
   const codigo = document.getElementById('pf-codigo').value.trim();
   const tipo = document.getElementById('pf-tipo').value.trim();
@@ -312,7 +328,14 @@ window.savePromo = async function(id) {
   const fin = document.getElementById('pf-fin').value;
 
   if (!productoId || !tipo || !descuento || !dropSize || !dropCantidad || !canalesSeleccionados.length || !inicio || !fin) {
-    alert('Completá todos los campos obligatorios');
+    let errEl = document.querySelector('.admin-promo-form .admin-form-error');
+    if (!errEl) {
+      errEl = document.createElement('p');
+      errEl.className = 'admin-form-error';
+      document.querySelector('.admin-form-actions').before(errEl);
+    }
+    errEl.textContent = 'Completá todos los campos obligatorios';
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = id ? 'Guardar cambios' : 'Crear promo'; }
     return;
   }
 
@@ -333,66 +356,76 @@ window.savePromo = async function(id) {
 
   if (id) promo.id = id;
 
-  await upsertPromocion(promo);
-  loadPromos();
+  try {
+    await upsertPromocion(promo);
+    loadPromos();
+  } catch (e) {
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = id ? 'Guardar cambios' : 'Crear promo'; }
+    console.error(e);
+  }
 };
 
 async function loadPrecios() {
   const container = document.getElementById('adminTabContent');
   container.innerHTML = '<p class="admin-loading">Cargando...</p>';
-  const productos = await fetchProductosAdmin(empresaId);
+  try {
+    const productos = await fetchProductosAdmin(empresaId);
 
-  const cats = [...new Set(productos.map(p => p.cat))];
+    const cats = [...new Set(productos.map(p => p.cat))];
 
-  container.innerHTML = `
-    <div class="admin-precios-header">
-      <h3>Productos (${productos.length})</h3>
-      <p class="admin-precios-hint">Editá los precios y presioná Enter o hacé click fuera para guardar.</p>
-    </div>
-    ${cats.map(cat => `
-      <div class="admin-precios-section">
-        <div class="admin-precios-cat">${cat.toUpperCase()}</div>
-        <div class="admin-precios-list">
-          <div class="admin-precios-row admin-precios-thead">
-            <span>Producto</span>
-            <span>Presentación</span>
-            <span>Precio comercio</span>
-            <span>Precio público</span>
-            <span>Estado</span>
-          </div>
-          ${productos.filter(p => p.cat === cat).map(p => `
-            <div class="admin-precios-row" data-id="${p.id}">
-              <span class="apm-name">${p.brand} ${p.name}</span>
-              <span class="apm-size">${p.size} · ${p.units}u</span>
-              <input class="apm-input apm-pcom" type="number" step="0.01"
-                value="${p.pcom}" data-id="${p.id}" data-field="pcom">
-              <input class="apm-input apm-ppub" type="number" step="0.01"
-                value="${p.ppub || ''}" data-id="${p.id}" data-field="ppub">
-              <span class="admin-badge ${p.activo ? 'admin-badge-active' : 'admin-badge-inactive'}">
-                ${p.activo ? 'Activo' : 'Inactivo'}
-              </span>
-            </div>
-          `).join('')}
-        </div>
+    container.innerHTML = `
+      <div class="admin-precios-header">
+        <h3>Productos (${productos.length})</h3>
+        <p class="admin-precios-hint">Editá los precios y presioná Enter o hacé click fuera para guardar.</p>
       </div>
-    `).join('')}
-  `;
+      ${cats.map(cat => `
+        <div class="admin-precios-section">
+          <div class="admin-precios-cat">${cat.toUpperCase()}</div>
+          <div class="admin-precios-list">
+            <div class="admin-precios-row admin-precios-thead">
+              <span>Producto</span>
+              <span>Presentación</span>
+              <span>Precio comercio</span>
+              <span>Precio público</span>
+              <span>Estado</span>
+            </div>
+            ${productos.filter(p => p.cat === cat).map(p => `
+              <div class="admin-precios-row" data-id="${p.id}">
+                <span class="apm-name">${p.brand} ${p.name}</span>
+                <span class="apm-size">${p.size} · ${p.units}u</span>
+                <input class="apm-input apm-pcom" type="number" step="0.01"
+                  value="${p.pcom}" data-id="${p.id}" data-field="pcom">
+                <input class="apm-input apm-ppub" type="number" step="0.01"
+                  value="${p.ppub || ''}" data-id="${p.id}" data-field="ppub">
+                <span class="admin-badge ${p.activo ? 'admin-badge-active' : 'admin-badge-inactive'}">
+                  ${p.activo ? 'Activo' : 'Inactivo'}
+                </span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('')}
+    `;
 
-  container.querySelectorAll('.apm-input').forEach(input => {
-    const save = async () => {
-      const id = parseInt(input.dataset.id);
-      const row = container.querySelector(`.admin-precios-row[data-id="${id}"]`);
-      const pcom = parseFloat(row.querySelector('.apm-pcom').value);
-      const ppub = parseFloat(row.querySelector('.apm-ppub').value) || null;
-      if (!pcom || pcom <= 0) return;
-      input.style.borderColor = '#f5a623';
-      await updatePrecioProducto(id, pcom, ppub);
-      input.style.borderColor = '#16a34a';
-      setTimeout(() => input.style.borderColor = '', 1000);
-    };
-    input.addEventListener('blur', save);
-    input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
-  });
+    container.querySelectorAll('.apm-input').forEach(input => {
+      const save = async () => {
+        const id = parseInt(input.dataset.id);
+        const row = container.querySelector(`.admin-precios-row[data-id="${id}"]`);
+        const pcom = parseFloat(row.querySelector('.apm-pcom').value);
+        const ppub = parseFloat(row.querySelector('.apm-ppub').value) || null;
+        if (!pcom || pcom <= 0) return;
+        input.style.borderColor = '#f5a623';
+        await updatePrecioProducto(id, pcom, ppub);
+        input.style.borderColor = '#16a34a';
+        setTimeout(() => input.style.borderColor = '', 1000);
+      };
+      input.addEventListener('blur', save);
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
+    });
+  } catch (e) {
+    container.innerHTML = '<p class="admin-empty">Error al cargar datos. Intentá de nuevo.</p>';
+    console.error(e);
+  }
 }
 
 window.toggleCanal = function(id) {

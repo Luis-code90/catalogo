@@ -123,6 +123,9 @@ body { font-family: 'Sora', sans-serif; background: var(--light); margin: 0; }
 .admin-check-label input[type="checkbox"] {
   accent-color: var(--teal); width: 16px; height: 16px; cursor: pointer;
 }
+.admin-inline-error, .admin-form-error {
+  color: #dc2626; font-size: .78rem; margin: 0;
+}
 .admin-precios-header { margin-bottom: 1rem; }
 .admin-precios-header h3 { margin: 0 0 .25rem; color: var(--deep); }
 .admin-precios-hint { font-size: .78rem; color: var(--muted); margin: 0; }

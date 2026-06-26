@@ -278,6 +278,8 @@ Acceso: solo usuarios con perfil.rol = 'admin' — redirige a index.html si no h
 Link de acceso: ícono engranaje en header, visible solo si perfil.rol === 'admin' (ui.js)
 
 ### Funciones RPC en Supabase (SECURITY DEFINER — bypass RLS):
+Todas las RPCs validan auth.uid() con rol='admin' antes de ejecutar.
+Si el usuario no es admin, lanzan RAISE EXCEPTION 'Acceso denegado'.
 - get_perfiles_pendientes(p_empresa_id) — perfiles con estado = 'pendiente'
 - get_perfiles_activos(p_empresa_id) — perfiles con estado = 'activo', orden desc
 - update_perfil_admin(p_perfil_id, p_canal, p_estado, p_rol) — UPDATE bypass RLS
@@ -312,6 +314,22 @@ Link de acceso: ícono engranaje en header, visible solo si perfil.rol === 'admi
 ## Pendientes
 - Filtrado de promos por canal del usuario (conectar canal del perfil con renderPromos)
 - fecha_lanzamiento en productos para ordenar y archivar lanzamientos
+
+## Auditoría de código (junio 2026)
+Análisis completo realizado antes de pruebas con vendedores. 22 problemas en 5 categorías.
+
+Resueltos:
+- S3: RPCs de admin con validación auth.uid() rol='admin' en Supabase
+- B1/B2: try/catch en loadPendientes, loadActivos, loadPromos, loadPrecios, savePromo
+- U1: alert() reemplazados por mensajes inline
+- C1: clearSessionCache() helper en supabase.js
+- C2: CANALES constante reutilizada en showPromoForm
+- P1: fetchProductosAdmin ordena inactivos al final
+
+Pendientes (baja prioridad):
+- U4: Panel admin sin responsive mobile
+- C3/C4: console.warn/error en storage.js y app.js en producción
+- S2: Protección admin solo client-side (mitigado por validación en RPCs)
 
 ## Workflow de desarrollo
 - Claude Code edita archivos directamente en VS Code
