@@ -1,4 +1,4 @@
-import { getCurrentUser, getPerfilByUserId, fetchUsuariosPending, fetchUsuariosActivos, aprobarUsuario, actualizarCanalUsuario, fetchPromocionesAdmin, togglePromocion, upsertPromocion, fetchProductosAdmin, deletePromocion } from './supabase.js';
+import { getCurrentUser, getPerfilByUserId, fetchUsuariosPending, fetchUsuariosActivos, aprobarUsuario, actualizarCanalUsuario, fetchPromocionesAdmin, togglePromocion, upsertPromocion, fetchProductosAdmin, deletePromocion, updatePrecioProducto } from './supabase.js';
 
 const CANALES = [
   { value: '', label: '— Seleccionar canal —' },
@@ -32,6 +32,7 @@ function renderTabs() {
       <button class="admin-tab active" data-tab="pendientes">Usuarios pendientes</button>
       <button class="admin-tab" data-tab="activos">Usuarios activos</button>
       <button class="admin-tab" data-tab="promos">Promociones</button>
+      <button class="admin-tab" data-tab="precios">Precios</button>
     </div>
     <div id="adminTabContent"></div>
   `;
@@ -42,6 +43,7 @@ function renderTabs() {
       if (btn.dataset.tab === 'pendientes') loadPendientes();
       else if (btn.dataset.tab === 'activos') loadActivos();
       else if (btn.dataset.tab === 'promos') loadPromos();
+      else if (btn.dataset.tab === 'precios') loadPrecios();
     });
   });
 }
@@ -334,6 +336,64 @@ window.savePromo = async function(id) {
   await upsertPromocion(promo);
   loadPromos();
 };
+
+async function loadPrecios() {
+  const container = document.getElementById('adminTabContent');
+  container.innerHTML = '<p class="admin-loading">Cargando...</p>';
+  const productos = await fetchProductosAdmin(empresaId);
+
+  const cats = [...new Set(productos.map(p => p.cat))];
+
+  container.innerHTML = `
+    <div class="admin-precios-header">
+      <h3>Productos (${productos.length})</h3>
+      <p class="admin-precios-hint">Editá los precios y presioná Enter o hacé click fuera para guardar.</p>
+    </div>
+    ${cats.map(cat => `
+      <div class="admin-precios-section">
+        <div class="admin-precios-cat">${cat.toUpperCase()}</div>
+        <div class="admin-precios-list">
+          <div class="admin-precios-row admin-precios-thead">
+            <span>Producto</span>
+            <span>Presentación</span>
+            <span>Precio comercio</span>
+            <span>Precio público</span>
+            <span>Estado</span>
+          </div>
+          ${productos.filter(p => p.cat === cat).map(p => `
+            <div class="admin-precios-row" data-id="${p.id}">
+              <span class="apm-name">${p.brand} ${p.name}</span>
+              <span class="apm-size">${p.size} · ${p.units}u</span>
+              <input class="apm-input apm-pcom" type="number" step="0.01"
+                value="${p.pcom}" data-id="${p.id}" data-field="pcom">
+              <input class="apm-input apm-ppub" type="number" step="0.01"
+                value="${p.ppub || ''}" data-id="${p.id}" data-field="ppub">
+              <span class="admin-badge ${p.activo ? 'admin-badge-active' : 'admin-badge-inactive'}">
+                ${p.activo ? 'Activo' : 'Inactivo'}
+              </span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('')}
+  `;
+
+  container.querySelectorAll('.apm-input').forEach(input => {
+    const save = async () => {
+      const id = parseInt(input.dataset.id);
+      const row = container.querySelector(`.admin-precios-row[data-id="${id}"]`);
+      const pcom = parseFloat(row.querySelector('.apm-pcom').value);
+      const ppub = parseFloat(row.querySelector('.apm-ppub').value) || null;
+      if (!pcom || pcom <= 0) return;
+      input.style.borderColor = '#f5a623';
+      await updatePrecioProducto(id, pcom, ppub);
+      input.style.borderColor = '#16a34a';
+      setTimeout(() => input.style.borderColor = '', 1000);
+    };
+    input.addEventListener('blur', save);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
+  });
+}
 
 window.toggleCanal = function(id) {
   const rol = document.getElementById(`rol-${id}`).value;

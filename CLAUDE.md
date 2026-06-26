@@ -286,6 +286,7 @@ Link de acceso: ícono engranaje en header, visible solo si perfil.rol === 'admi
     p_tipo_promo, p_descuento_pct, p_drop_size, p_drop_cantidad, p_canal,
     p_fecha_inicio, p_fecha_fin, p_activa) — INSERT/UPDATE bypass RLS
 - delete_promocion(p_id) — DELETE bypass RLS
+- update_precio_producto(p_id, p_pcom, p_ppub) — UPDATE precios bypass RLS
 
 ### Tabs implementadas:
 - Usuarios pendientes: lista con selector de rol (cliente/vendedor/admin) y canal
@@ -298,13 +299,15 @@ Link de acceso: ícono engranaje en header, visible solo si perfil.rol === 'admi
   Formulario crear/editar con checkboxes de canal múltiple.
   Eliminar via RPC delete_promocion con confirm() nativo.
   Caché sessionStorage de promociones se limpia automáticamente tras cada cambio.
+- Precios: listado de productos agrupados por categoría con inputs editables
+  para pcom y ppub. Guarda en blur o Enter via RPC update_precio_producto.
+  Limpia caché mirlo_productos_* automáticamente. Feedback visual naranja→verde.
 
 ### Columnas nuevas en tabla perfiles:
 - canal text — canal de distribución del cliente
 - rol text DEFAULT 'cliente' — valores: 'cliente', 'vendedor', 'admin'
 
-### Pendiente fase 3:
-- Edición de precios de productos desde panel admin
+### Panel admin completo — todas las fases implementadas
 
 ## Pendientes
 - Filtrado de promos por canal del usuario (conectar canal del perfil con renderPromos)

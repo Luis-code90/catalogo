@@ -278,13 +278,22 @@ export async function upsertPromocion(promo) {
 export async function fetchProductosAdmin(empresaId) {
   const { data, error } = await supabase
     .from('productos')
-    .select('id, name, brand, cat')
+    .select('id, name, brand, cat, size, units, pcom, ppub, activo')
     .eq('empresa_id', empresaId)
-    .eq('activo', true)
+    .order('cat')
     .order('brand')
     .order('name');
   if (error) throw new Error(error.message);
   return data;
+}
+
+export async function updatePrecioProducto(id, pcom, ppub) {
+  const { error } = await supabase
+    .rpc('update_precio_producto', { p_id: id, p_pcom: pcom, p_ppub: ppub });
+  if (error) throw new Error(error.message);
+  Object.keys(sessionStorage)
+    .filter(k => k.startsWith('mirlo_productos_'))
+    .forEach(k => sessionStorage.removeItem(k));
 }
 
 export async function deletePromocion(id) {

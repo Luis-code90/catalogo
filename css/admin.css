@@ -123,3 +123,36 @@ body { font-family: 'Sora', sans-serif; background: var(--light); margin: 0; }
 .admin-check-label input[type="checkbox"] {
   accent-color: var(--teal); width: 16px; height: 16px; cursor: pointer;
 }
+.admin-precios-header { margin-bottom: 1rem; }
+.admin-precios-header h3 { margin: 0 0 .25rem; color: var(--deep); }
+.admin-precios-hint { font-size: .78rem; color: var(--muted); margin: 0; }
+.admin-precios-section { margin-bottom: 2rem; }
+.admin-precios-cat {
+  font-size: .7rem; font-weight: 700; letter-spacing: .1em;
+  color: var(--teal); margin-bottom: .5rem;
+}
+.admin-precios-list {
+  background: #fff; border-radius: 12px;
+  overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.05);
+}
+.admin-precios-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr auto;
+  gap: 1rem; align-items: center;
+  padding: .75rem 1.25rem;
+  border-bottom: 1px solid var(--frost);
+}
+.admin-precios-row:last-child { border-bottom: none; }
+.admin-precios-thead {
+  font-size: .7rem; font-weight: 700; text-transform: uppercase;
+  color: var(--muted); background: var(--light);
+}
+.apm-name { font-weight: 600; color: var(--deep); font-size: .88rem; }
+.apm-size { font-size: .78rem; color: var(--muted); }
+.apm-input {
+  border: 1.5px solid var(--frost); border-radius: 8px;
+  padding: .4rem .6rem; font-family: 'Sora', sans-serif;
+  font-size: .85rem; width: 100%; box-sizing: border-box;
+  transition: border-color .3s;
+}
+.apm-input:focus { outline: none; border-color: var(--teal); }
