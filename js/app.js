@@ -66,13 +66,6 @@ function initCarousel() {
   const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   document.getElementById('pcMes').textContent = meses[new Date().getMonth()];
 
-  const marcas = [...new Set(promociones.map(pr => {
-    const p = productos.find(p => p.id === pr.producto_id);
-    return p ? p.brand : null;
-  }).filter(Boolean))];
-  document.getElementById('pcBrands').innerHTML = marcas
-    .map(m => `<span class="pc-brand-chip">${m}</span>`).join('');
-
   const nuevos = productos.filter(p => p.es_nuevo);
   document.getElementById('pcThumbs').innerHTML = nuevos.slice(0, 4).map(p =>
     p.img
@@ -95,6 +88,38 @@ function initCarousel() {
   });
 
   setInterval(() => goToSlide(current + 1), 4000);
+
+  const track = document.getElementById('pcTrack');
+  let startX = 0;
+  let isDragging = false;
+
+  track.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX;
+  }, { passive: true });
+
+  track.addEventListener('touchend', e => {
+    const diff = startX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      goToSlide(diff > 0 ? current + 1 : current - 1);
+    }
+  }, { passive: true });
+
+  track.addEventListener('mousedown', e => {
+    e.preventDefault();
+    startX = e.clientX;
+    isDragging = true;
+  });
+
+  track.addEventListener('mouseup', e => {
+    if (!isDragging) return;
+    isDragging = false;
+    const diff = startX - e.clientX;
+    if (Math.abs(diff) > 50) {
+      goToSlide(diff > 0 ? current + 1 : current - 1);
+    }
+  });
+
+  track.addEventListener('mouseleave', () => { isDragging = false; });
 
   const pcNuevosBtn = document.getElementById('pcNuevosBtn');
   if (pcNuevosBtn) {
@@ -144,7 +169,19 @@ function renderPromosFiltered(canal) {
 window.renderPromosFiltered = renderPromosFiltered;
 
 function filterByPromo() {
-  renderPromos(getPromociones(), getProducts());
+  const perfil = getCurrentPerfil();
+  const canal = perfil?.canal;
+
+  let filtroInicial = 'todos';
+  if (canal) {
+    const c = canal.toUpperCase();
+    if (c.includes('MAYORISTA')) filtroInicial = 'mayoristas';
+    else if (c.includes('AUTOSERVICIO')) filtroInicial = 'autoservicio';
+    else if (c.includes('TRADICIONAL')) filtroInicial = 'tradicional';
+    else if (c.includes('GRUPOS DE COMPRA') || c.includes('GDC')) filtroInicial = 'gdc';
+  }
+
+  renderPromos(getPromociones(), getProducts(), filtroInicial);
   document.getElementById('catFilters').style.display = 'none';
 }
 

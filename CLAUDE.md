@@ -312,7 +312,6 @@ Si el usuario no es admin, lanzan RAISE EXCEPTION 'Acceso denegado'.
 ### Panel admin completo — todas las fases implementadas
 
 ## Pendientes
-- Filtrado de promos por canal del usuario (conectar canal del perfil con renderPromos)
 - fecha_lanzamiento en productos para ordenar y archivar lanzamientos
 
 ## Auditoría de código (junio 2026)
@@ -327,7 +326,7 @@ Resueltos:
 - P1: fetchProductosAdmin ordena inactivos al final
 
 Pendientes (baja prioridad):
-- U4: Panel admin sin responsive mobile
+- ~~U4~~: Panel admin responsive mobile — resuelto (@media 768px y 480px en base.css)
 - C3/C4: console.warn/error en storage.js y app.js en producción
 - S2: Protección admin solo client-side (mitigado por validación en RPCs)
 

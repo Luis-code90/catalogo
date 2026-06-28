@@ -238,3 +238,31 @@ main { padding:1.8rem 2rem 4rem; max-width:1480px; margin:0 auto; }
   font-size: .75rem; color: var(--muted);
   letter-spacing: .03em;
 }
+
+.pc-track { cursor: grab; }
+.pc-track:active { cursor: grabbing; }
+.pc-track img { user-select: none; -webkit-user-drag: none; pointer-events: none; }
+
+@media (max-width: 768px) {
+  .admin-tabs { flex-wrap: wrap; }
+  .admin-precios-row {
+    grid-template-columns: 2fr 1fr 1fr 1fr auto;
+    font-size: .8rem;
+  }
+  .admin-precios-row input { font-size: .8rem; padding: .3rem .5rem; }
+}
+
+@media (max-width: 480px) {
+  .admin-header { flex-direction: column; align-items: flex-start; gap: .5rem; padding: 1rem; }
+  .admin-tabs { flex-wrap: wrap; }
+  .admin-tab { flex: 1; min-width: 120px; text-align: center; font-size: .78rem; padding: .5rem; }
+  .admin-card { flex-direction: column; align-items: flex-start; }
+  .admin-approve-controls { flex-wrap: wrap; width: 100%; }
+  .admin-card-actions { flex-wrap: wrap; }
+  .admin-precios-row { grid-template-columns: 1fr 1fr; gap: .5rem; }
+  .admin-precios-thead { display: none; }
+  .apm-name { grid-column: 1 / -1; }
+  .apm-size { grid-column: 1 / -1; font-size: .72rem; }
+  .admin-form-grid { grid-template-columns: 1fr; }
+  .admin-form-group-full { grid-column: 1; }
+}
