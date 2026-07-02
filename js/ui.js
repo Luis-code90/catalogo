@@ -205,6 +205,9 @@ export function updateUIForRole(role, perfil) {
   const carousel = document.getElementById('promoCarousel');
   if (carousel) carousel.style.display = role === 'authenticated' ? 'block' : 'none';
 
+  const calcBtn = document.getElementById('calcBtn');
+  if (calcBtn) calcBtn.style.display = (perfil?.rol === 'vendedor' || perfil?.rol === 'admin') ? 'flex' : 'none';
+
   const adminLink = document.getElementById('headerAdminLink');
   if (adminLink) adminLink.style.display = (role === 'authenticated' && perfil?.rol === 'admin') ? 'flex' : 'none';
 

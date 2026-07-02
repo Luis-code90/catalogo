@@ -255,6 +255,54 @@
   </div>
 </div>
 
+<!-- CALCULADORA DE PRECIOS -->
+<div class="calc-btn" id="calcBtn" style="display:none" onclick="toggleCalc()">
+  <div class="calc-btn-icon">🧮</div>
+</div>
+
+<div class="calc-panel" id="calcPanel">
+  <div class="calc-panel-header">
+    <span>Calculadora de precios</span>
+    <button class="calc-close" onclick="toggleCalc()">✕</button>
+  </div>
+  <div class="calc-body">
+    <div class="calc-row">
+      <label class="calc-label">Producto</label>
+      <select id="calcProducto" class="calc-input" onchange="calcUpdate()">
+        <option value="">— Seleccioná un producto —</option>
+      </select>
+    </div>
+    <div class="calc-row">
+      <label class="calc-label">Combo del mes</label>
+      <select id="calcCombo" class="calc-input" onchange="calcUpdate()">
+        <option value="">— Sin combo —</option>
+      </select>
+    </div>
+    <div class="calc-row">
+      <label class="calc-label">Descuento cliente %</label>
+      <input id="calcDescCliente" class="calc-input" type="number" min="0" max="100" step="0.01" placeholder="ej: 14" oninput="calcUpdate()">
+    </div>
+    <div class="calc-row">
+      <label class="calc-label">Descuento adicional %</label>
+      <input id="calcDescAdicional" class="calc-input" type="number" min="0" max="100" step="0.01" placeholder="ej: 5" oninput="calcUpdate()">
+    </div>
+    <div class="calc-result" id="calcResult" style="display:none">
+      <div class="calc-result-row">
+        <span class="calc-result-label">Precio unitario</span>
+        <span class="calc-result-value" id="calcUnitario"></span>
+      </div>
+      <div class="calc-result-row">
+        <span class="calc-result-label">Precio por funda</span>
+        <span class="calc-result-value" id="calcFunda"></span>
+      </div>
+      <div class="calc-result-row calc-result-ahorro">
+        <span class="calc-result-label">Ahorro total</span>
+        <span class="calc-result-value" id="calcAhorro"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MAIN -->
 <main>
   <div class="grid-header">

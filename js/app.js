@@ -9,7 +9,7 @@ import { sendToWhatsApp } from './whatsapp.js';
 import { updateClientInfoLine, editClientInfo, confirmClientInfo, cancelClientInfo, setClientType, clientStepBack, clientStepNext, openClientModal, showStep } from './client.js';
 import { openOrderHistory, closeOrderHistory, closeHistoryBg } from './history.js';
 import { clearCart, addToCart, addToCartById, removeFromCart } from './cart.js';
-import { updateUIForRole, renderPromos } from './ui.js';
+import { updateUIForRole, renderPromos, fmt } from './ui.js';
 import { openProfile, closeProfile, closeProfileBg, saveProfile } from './profile.js';
 
 // ── PRODUCT LOADING ──────────────────────────────────────
@@ -168,6 +168,58 @@ function renderPromosFiltered(canal) {
 }
 window.renderPromosFiltered = renderPromosFiltered;
 
+// ── CALCULADORA DE PRECIOS ────────────────────────────────
+function initCalculadora() {
+  const productos = getProducts();
+  const promociones = getPromociones();
+
+  const selectProducto = document.getElementById('calcProducto');
+  if (!selectProducto) return;
+  selectProducto.innerHTML = '<option value="">— Seleccioná un producto —</option>' +
+    productos.map(p => `<option value="${p.id}">${p.brand} ${p.name} (${p.size})</option>`).join('');
+
+  const selectCombo = document.getElementById('calcCombo');
+  selectCombo.innerHTML = '<option value="">— Sin combo —</option>';
+
+  selectProducto.addEventListener('change', () => {
+    const productoId = parseInt(selectProducto.value);
+    const combosDelProducto = promociones.filter(pr => pr.producto_id === productoId && pr.activa);
+    selectCombo.innerHTML = '<option value="">— Sin combo —</option>' +
+      combosDelProducto.map(pr => `<option value="${pr.id}">${pr.tipo_promo} — ${pr.drop_size} (${pr.descuento_pct}%)</option>`).join('');
+    calcUpdate();
+  });
+}
+
+window.calcUpdate = function() {
+  const productoId = parseInt(document.getElementById('calcProducto').value);
+  const comboId = parseInt(document.getElementById('calcCombo').value);
+  const descCliente = parseFloat(document.getElementById('calcDescCliente').value) || 0;
+  const descAdicional = parseFloat(document.getElementById('calcDescAdicional').value) || 0;
+  const resultEl = document.getElementById('calcResult');
+
+  if (!productoId) { resultEl.style.display = 'none'; return; }
+
+  const producto = getProducts().find(p => p.id === productoId);
+  if (!producto) return;
+
+  const promo = comboId ? getPromociones().find(p => p.id === comboId) : null;
+  const descCombo = promo ? promo.descuento_pct / 100 : 0;
+  const units = promo ? promo.drop_cantidad : producto.units;
+
+  let precio = producto.pcom;
+  precio = precio * (1 - descCombo);
+  precio = precio * (1 - descCliente / 100);
+  precio = precio * (1 - descAdicional / 100);
+
+  const precioFunda = precio * units;
+  const ahorro = (producto.pcom * units) - precioFunda;
+
+  document.getElementById('calcUnitario').textContent = fmt(precio);
+  document.getElementById('calcFunda').textContent = `${fmt(precioFunda)} (${units} u.)`;
+  document.getElementById('calcAhorro').textContent = fmt(ahorro);
+  resultEl.style.display = 'block';
+};
+
 function filterByPromo() {
   const perfil = getCurrentPerfil();
   const canal = perfil?.canal;
@@ -191,6 +243,11 @@ function volverCatalogo() {
   filter();
 }
 window.volverCatalogo = volverCatalogo;
+
+function toggleCalc() {
+  document.getElementById('calcPanel').classList.toggle('open');
+}
+window.toggleCalc = toggleCalc;
 
 // ── AGE VERIFICATION ─────────────────────────────────────
 function confirmAge(adult) {
@@ -381,6 +438,7 @@ async function init() {
   updateClientInfoLine();
   updateCartUI();
   filter();
+  initCalculadora();
   setupEventListeners();
 
   if (isRecovery) {
