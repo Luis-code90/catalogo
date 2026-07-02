@@ -252,6 +252,9 @@ Primera carga va a Supabase, recargas sirven desde caché. Se limpia al cerrar l
 - overflow-x: hidden en body.
 - @media (max-width: 480px): header oculta .header-user-name en chip de usuario,
   cart panel ocupa 100vw con border-radius superior, bottom sheet desde abajo.
+- @media (max-width: 768px): panel admin — tabs con flex-wrap, inputs de precios más chicos.
+- @media (max-width: 480px): panel admin — cards en columna, precios en grid 2 columnas,
+  header en columna, form-grid en 1 columna.
 
 ## Features UX agregadas
 - Tecla Escape cierra el modal de producto (listener keydown en app.js).
@@ -270,6 +273,19 @@ Primera carga va a Supabase, recargas sirven desde caché. Se limpia al cerrar l
   con botón "Registrate para ver precios". Ya no muestra imagen estática de Watts.
 - Botón "Ver →" del carrusel de nuevos lanzamientos conectado a verNuevosLanzamientos():
   muestra grid de cards sin precio con badge "NUEVO", botón "← Volver al catálogo".
+- Carrusel con swipe táctil (touchstart/touchend) y drag mouse (mousedown/mouseup).
+  Fix drag sobre imágenes: e.preventDefault() en mousedown + user-select:none en .pc-track img.
+  Chips de marcas eliminados del slide de promos.
+- filterByPromo() pre-filtra por canal del perfil del usuario (perfil.canal) al abrir el grid de promos.
+  Mapeo: MAYORISTA→mayoristas, AUTOSERVICIO→autoservicio, TRADICIONAL→tradicional, GDC→gdc.
+- Calculadora de precios (#calculadora): visible solo para vendedores y admins (perfil.rol).
+  Ubicada entre el carrusel y el grid de productos. Permite seleccionar producto, combo del mes,
+  descuento cliente % y descuento adicional %. Muestra precio unitario, precio por funda y ahorro total.
+  Cascada de descuentos: combo → cliente → adicional. initCalculadora() en app.js, window.calcUpdate
+  como handler inline. fmt importado desde ui.js.
+  Implementada como bottom-sheet activado por FAB flotante (#calcBtn, 🧮) en bottom: 5.5rem sobre
+  el carrito. En desktop (≥768px) aparece como popup flotante anclado a la derecha.
+  toggleCalc() toggle clase .open en #calcPanel. Visibilidad controlada en updateUIForRole() via perfil.rol.
 
 ## Panel Admin
 Ruta: admin.html (mismo directorio que index.html)
