@@ -24,7 +24,6 @@ export async function initAuth() {
   if (!user) {
     setUserRole('guest');
     updateHeaderUI();
-    showAuthOverlay();
     return 'guest';
   }
 

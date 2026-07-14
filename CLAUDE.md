@@ -287,6 +287,36 @@ Primera carga va a Supabase, recargas sirven desde caché. Se limpia al cerrar l
   el carrito. En desktop (≥768px) aparece como popup flotante anclado a la derecha.
   toggleCalc() toggle clase .open en #calcPanel. Visibilidad controlada en updateUIForRole() via perfil.rol.
 
+## Flujo de entrada guest simplificado
+initAuth() ya no llama showAuthOverlay() para guests. El flujo es:
+entra a la web → verificación de edad directa → catálogo.
+continueAsGuest() queda declarada pero no se invoca en este flujo.
+Botón "Iniciar sesión" en el header abre el overlay de auth manualmente cuando el usuario lo decide.
+
+## Carrusel diferenciado por rol
+#promoCarousel ahora tiene 3 slides: .pc-slide-promos, .pc-slide-nuevos (autenticados,
+con rotación automática y dots) y .pc-slide-guest (invitados, slide único fijo sin dots,
+"Hazte cliente para ver nuestras ofertas" con miniaturas de productos es_nuevo).
+initCarousel() en app.js detecta el rol con getUserRole() y muestra el slide correspondiente.
+El modal openPromo() ya no se dispara automáticamente al confirmar edad (antes se llamaba
+desde confirmAge() para ambos casos adult/minor).
+
+## Categorías nuevas: Destilados y Energizante
+Productos que se venden por unidad (units=1), sin selector de funda ni combos.
+CAT y EMOJI en data.js extendidos. Filtros agregados en #catFilters.
+Modal ajustado: cuando units === 1, muestra "PRECIO UNITARIO" con ppub en vez de
+"PRECIO POR FUNDA" con pcom × units.
+
+### Productos ExtraCCU cargados (ids 106-114):
+- 106: William Lawsons 1lt — Destilados
+- 107/108: Martini Blanco/Rosso 1lt — Destilados
+- 109/110: Bacardi Oro/Blanco 750ml — Destilados
+- 111: Jägermeister 700ml — Destilados
+- 112: Jägermeister Petaca 200ml — Destilados
+- 113/114: Red Bull / Red Bull Sin Azúcar 250ml — Energizante
+Todos con barcode temporal (TEMP-106 a TEMP-114) — pendiente reemplazar por códigos reales.
+Todos marcados es_nuevo=true.
+
 ## Panel Admin
 Ruta: admin.html (mismo directorio que index.html)
 Acceso: solo usuarios con perfil.rol = 'admin' — redirige a index.html si no hay sesión,
@@ -329,6 +359,7 @@ Si el usuario no es admin, lanzan RAISE EXCEPTION 'Acceso denegado'.
 
 ## Pendientes
 - fecha_lanzamiento en productos para ordenar y archivar lanzamientos
+- Reemplazar barcodes temporales (TEMP-106 a TEMP-114) por códigos reales
 
 ## Auditoría de código (junio 2026)
 Análisis completo realizado antes de pruebas con vendedores. 22 problemas en 5 categorías.

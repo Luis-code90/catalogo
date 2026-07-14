@@ -63,6 +63,26 @@ function initCarousel() {
   const carousel = document.getElementById('promoCarousel');
   if (!carousel) return;
 
+  const role = getUserRole();
+
+  if (role === 'guest') {
+    document.querySelector('.pc-slide-promos').style.display = 'none';
+    document.querySelector('.pc-slide-nuevos').style.display = 'none';
+    document.querySelector('.pc-slide-guest').style.display = 'block';
+    document.querySelector('.pc-dots').style.display = 'none';
+    const nuevos = productos.filter(p => p.es_nuevo);
+    const thumbsEl = document.getElementById('pcGuestThumbs');
+    if (thumbsEl) thumbsEl.innerHTML = nuevos.slice(0, 4).map(p =>
+      p.img ? `<img class="pc-thumb" src="${p.img}" alt="${p.name}">` : `<div class="pc-thumb-fallback">🆕</div>`
+    ).join('');
+    return;
+  }
+
+  document.querySelector('.pc-slide-promos').style.display = 'block';
+  document.querySelector('.pc-slide-nuevos').style.display = 'block';
+  document.querySelector('.pc-slide-guest').style.display = 'none';
+  document.querySelector('.pc-dots').style.display = 'flex';
+
   const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   document.getElementById('pcMes').textContent = meses[new Date().getMonth()];
 
@@ -260,13 +280,11 @@ function confirmAge(adult) {
       document.body.style.overflow = '';
       hideAlcohol();
       filter();
-      openPromo();
     }, 2000);
   } else {
     document.getElementById('ageOverlay').style.display = 'none';
     document.body.style.overflow = '';
     filter();
-    openPromo();
   }
 }
 
@@ -433,6 +451,17 @@ async function init() {
   const role = await initAuth();
   updateUIForRole(role, getCurrentPerfil());
   initCarousel();
+
+  if (role === 'guest') {
+    const ageAnswer = sessionStorage.getItem('mirlo_age_verified');
+    if (ageAnswer) {
+      setIsAdult(ageAnswer === 'adult');
+      if (ageAnswer === 'minor') hideAlcohol();
+    } else {
+      document.getElementById('ageOverlay').style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+  }
 
   loadCart();
   updateClientInfoLine();

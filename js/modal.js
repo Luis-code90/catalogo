@@ -61,7 +61,13 @@ export function openModal(p) {
     document.getElementById('modalBottleSelector').style.display = 'none';
     setModalFundaSize(p.units);
     document.getElementById('mUnitsDisplay').textContent = p.units;
-    document.getElementById('mPFunda').textContent = fmt(p.pcom * p.units);
+    if (p.units === 1) {
+      document.getElementById('pfbLabel').textContent = 'PRECIO UNITARIO';
+      document.getElementById('mPFunda').textContent = fmt(p.ppub);
+    } else {
+      document.getElementById('pfbLabel').textContent = 'PRECIO POR FUNDA';
+      document.getElementById('mPFunda').textContent = fmt(p.pcom * p.units);
+    }
   }
 
   document.getElementById('modalQty').textContent = 1;

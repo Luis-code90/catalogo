@@ -203,7 +203,7 @@ export function renderPromos(promociones, productos, canalFiltro = 'todos') {
 
 export function updateUIForRole(role, perfil) {
   const carousel = document.getElementById('promoCarousel');
-  if (carousel) carousel.style.display = role === 'authenticated' ? 'block' : 'none';
+  if (carousel) carousel.style.display = (role === 'authenticated' || role === 'guest') ? 'block' : 'none';
 
   const calcBtn = document.getElementById('calcBtn');
   if (calcBtn) calcBtn.style.display = (perfil?.rol === 'vendedor' || perfil?.rol === 'admin') ? 'flex' : 'none';
