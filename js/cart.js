@@ -77,7 +77,9 @@ export function updateCartUI() {
             ? p.units === 1
               ? `${item.qty} unidad${item.qty > 1 ? 'es' : ''}`
               : `${item.qty} caja${item.qty > 1 ? 's' : ''} (${item.qty * 6} u.)`
-            : `${item.qty} × ${p.units}u`;
+            : p.units === 1
+              ? `${item.qty} unidad${item.qty > 1 ? 'es' : ''}`
+              : `${item.qty} × ${p.units}u`;
         return `
         <div class="cart-item">
           <div class="ci-info">
