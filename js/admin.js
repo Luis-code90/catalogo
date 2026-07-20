@@ -112,7 +112,7 @@ async function loadPendientes() {
           await aprobarUsuario(id, canal, rol);
           await loadPendientes();
         } catch (e) {
-          alert('Error al aprobar usuario');
+          errorMsg.textContent = 'Error al aprobar. Intentá de nuevo.';
           btn.textContent = 'Aprobar';
           btn.disabled = false;
         }
