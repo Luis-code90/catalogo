@@ -294,6 +294,12 @@ async function showPromoForm(promo = null) {
           <label>Fecha fin</label>
           <input id="pf-fin" type="date" value="${promo?.fecha_fin || ''}">
         </div>
+        <div class="admin-form-group admin-form-group-full">
+          <label class="admin-check-label">
+            <input type="checkbox" id="pf-activa" ${promo ? (promo.activa ? 'checked' : '') : 'checked'}>
+            Promo activa
+          </label>
+        </div>
       </div>
       <div class="admin-form-actions">
         <button class="admin-btn-cancel" onclick="loadPromos()">Cancelar</button>
@@ -351,7 +357,7 @@ window.savePromo = async function(id) {
     canal,
     fecha_inicio: inicio,
     fecha_fin: fin,
-    activa: true
+    activa: !!document.getElementById('pf-activa')?.checked
   };
 
   if (id) promo.id = id;
