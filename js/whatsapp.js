@@ -87,23 +87,21 @@ export function doSendToWhatsApp() {
 
     const detalles = cartSnapshot.map(item => {
       const p = item.product;
-      const precioUnitario = p.pcom ?? p.ppub;
       return {
         producto_id: p.id,
         cantidad: item.qty,
         unidades_por_paquete: p.units,
-        precio_unitario: precioUnitario,
-        subtotal: precioUnitario * p.units * item.qty
+        precio_unitario: p.pcom ?? p.ppub
+        // subtotal es GENERATED ALWAYS en Supabase — no se envía en el insert
       };
     });
 
     insertPedido({
-      perfil_id: perfil.id,
-      empresa_id: getEmpresaId(),
-      estado: 'pendiente',
+      empresa_id:  getEmpresaId(),
+      estado:      'pendiente',
       total,
       vendedor_id: vendedorId,
-      notas: null
+      notas:       null
     }, detalles).catch(e => console.error('Error al guardar pedido en Supabase:', e));
   }
 

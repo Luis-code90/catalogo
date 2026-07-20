@@ -335,6 +335,9 @@ Si el usuario no es admin, lanzan RAISE EXCEPTION 'Acceso denegado'.
     p_fecha_inicio, p_fecha_fin, p_activa) — INSERT/UPDATE bypass RLS
 - delete_promocion(p_id) — DELETE bypass RLS
 - update_precio_producto(p_id, p_pcom, p_ppub) — UPDATE precios bypass RLS
+- crear_pedido(p_empresa_id, p_estado, p_total, p_vendedor_id, p_notas, p_items jsonb)
+    — INSERT atómico en pedidos + pedido_detalle. perfil_id desde auth.uid().
+    Disponible para usuarios autenticados (no solo admins).
 
 ### Tabs implementadas:
 - Usuarios pendientes: lista con selector de rol (cliente/vendedor/admin) y canal
@@ -361,18 +364,23 @@ Si el usuario no es admin, lanzan RAISE EXCEPTION 'Acceso denegado'.
 Primer uso del frontend escribiendo en Supabase para datos transaccionales
 (fuera de RPCs). Las tablas pedidos y pedido_detalle ya tenían RLS configurada.
 
-### Flujo de insert (whatsapp.js → supabase.js)
+### Flujo de insert (whatsapp.js → supabase.js → RPC crear_pedido)
 - `doSendToWhatsApp()` hace un fire-and-forget de `insertPedido()` antes de `clearCart()`.
   Si el insert falla, el error se loguea pero el envío por WhatsApp sigue igual (decisión intencional).
-- `estado` inicial `'pendiente'` al insertar desde WhatsApp. El constraint de la columna
-  acepta cuatro valores: `pendiente`, `confirmado`, `entregado`, `cancelado`.
-  Los demás estados se setearán desde el panel admin cuando haya UI para ello.
-- `empresa_id`: viene de `getEmpresaId()` (state.js). Nota: `pedidos.empresa_id` es integer
-  en Supabase pero `empresas.id` es uuid — inconsistencia conocida pendiente de fix en DB.
+- `insertPedido()` llama a la RPC `crear_pedido` (SECURITY DEFINER) que inserta `pedidos` y
+  `pedido_detalle` en una sola transacción. Si cualquier insert falla, ambos hacen rollback.
+  No hay pedidos huérfanos con items vacíos.
+- `perfil_id` NO se pasa desde el cliente — la RPC usa `auth.uid()` internamente (más seguro).
+- `estado` inicial `'pendiente'` al insertar desde WhatsApp. El constraint acepta:
+  `pendiente`, `confirmado`, `entregado`, `cancelado`. Los demás los setea el panel admin.
+- `empresa_id`: viene de `getEmpresaId()` (state.js, cargado en loadProducts). Es UUID.
+  Nota: `pedidos.empresa_id` era integer — corregir a uuid en Supabase (pendiente).
 - `vendedor_id`: resuelto desde `perfil.vendedores_asignados[0].vendedor_id` (UUID del perfil)
   o matching por phone del `getSelectedVendor()` contra `getVendors()`.
 - `precio_unitario`: congela `pcom ?? ppub` al momento del pedido (no muta si los precios cambian).
-- `unidades_por_paquete`: refleja las unidades reales del carrito (6 para cerveza, 1 para destilados, etc.).
+- `unidades_por_paquete`: refleja las unidades reales del carrito (6 para cerveza, 1 para destilados).
+- `subtotal` en `pedido_detalle` es `GENERATED ALWAYS AS (cantidad * precio_unitario) STORED`.
+  Nunca se envía en un insert — Postgres la calcula solo. Mandarla causa error de Postgres.
 
 ### Lectura del historial (history.js → supabase.js)
 - `fetchPedidosUsuario()` hace `SELECT pedidos.*, pedido_detalle(*, productos(name, brand, cat))`

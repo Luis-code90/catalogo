@@ -310,27 +310,20 @@ export async function deletePromocion(id) {
 }
 
 // ── PEDIDOS ───────────────────────────────────────────────
+// perfil_id se toma de auth.uid() dentro de la RPC — no se pasa como parámetro.
+// La RPC inserta pedido + pedido_detalle en una única transacción (atomicidad).
 export async function insertPedido(pedido, detalles) {
   const { data, error } = await supabase
-    .from('pedidos')
-    .insert({
-      perfil_id: pedido.perfil_id,
-      empresa_id: pedido.empresa_id,
-      estado: pedido.estado,
-      total: pedido.total,
-      vendedor_id: pedido.vendedor_id,
-      notas: pedido.notas || null
-    })
-    .select('id')
-    .single();
+    .rpc('crear_pedido', {
+      p_empresa_id:  pedido.empresa_id,
+      p_estado:      pedido.estado,
+      p_total:       pedido.total,
+      p_vendedor_id: pedido.vendedor_id,
+      p_notas:       pedido.notas || null,
+      p_items:       detalles
+    });
   if (error) throw new Error(error.message);
-
-  const { error: detError } = await supabase
-    .from('pedido_detalle')
-    .insert(detalles.map(d => ({ ...d, pedido_id: data.id })));
-  if (detError) throw new Error(detError.message);
-
-  return data.id;
+  return data;
 }
 
 export async function fetchPedidosUsuario() {
