@@ -372,10 +372,24 @@ Resueltos:
 - C2: CANALES constante reutilizada en showPromoForm
 - P1: fetchProductosAdmin ordena inactivos al final
 
+Resueltos (Fase 0 — julio 2026):
+- Promo editada se reactivaba sola: savePromo ahora lee checkbox #pf-activa
+  del form en vez de hardcodear activa:true. El form precarga el estado real.
+- alert() en aprobación de usuario: reemplazado por error inline (errorMsg)
+  consistente con el resto del panel.
+- fetchProductosAdmin sin caché: ahora usa sessionStorage mirlo_productos_admin_*
+  igual que los otros fetches. Se invalida automáticamente con clearSessionCache('mirlo_productos_').
+- Destilados mostraban '1 × 1u' en carrito: displayQty ahora tiene case para
+  units === 1 → 'N unidades', igual que vinos/sidras unitarios.
+- mPCom mostraba '$0.00' si pcom es null: ahora muestra '—' para pcom null/undefined.
+- Inputs de calculadora tipo number en mobile: cambiados a type=text + inputmode=decimal
+  para usar teclado compacto sin tapar el bottom-sheet.
+
 Pendientes (baja prioridad):
 - ~~U4~~: Panel admin responsive mobile — resuelto (@media 768px y 480px en base.css)
 - C3/C4: console.warn/error en storage.js y app.js en producción
 - S2: Protección admin solo client-side (mitigado por validación en RPCs)
+- get_perfiles_activos no filtra por rol server-side — filtro solo client-side en admin.js:133
 
 ## Workflow de desarrollo
 - Claude Code edita archivos directamente en VS Code
