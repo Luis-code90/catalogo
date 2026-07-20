@@ -1,5 +1,5 @@
 import { initAuth, handleLogin, handleRegister, handleLogout, showAuthLogin, showAuthRegister, continueAsGuest, showAuthOverlay, showForgotPassword, handleForgotPassword, listenForRecovery, handleSetNewPassword, showSetNewPassword } from './auth.js';
-import { setProducts, getProducts, setIsAdult, setVendedores, setWhatsappPhone, setPromociones, getPromociones, getUserRole, getCurrentPerfil } from './state.js';
+import { setProducts, getProducts, setIsAdult, setVendedores, setWhatsappPhone, setEmpresaId, setPromociones, getPromociones, getUserRole, getCurrentPerfil } from './state.js';
 import { fetchProductos, fetchVendedores, fetchEmpresa, fetchPromociones } from './supabase.js';
 import { updateCartUI } from './cart.js';
 import { loadCart } from './storage.js';
@@ -26,6 +26,7 @@ async function loadProducts() {
     setVendedores(vendedores);
     setPromociones(promociones);
     setWhatsappPhone(empresa.whatsapp_phone);
+    setEmpresaId(empresa.id);
     return true;
   } catch (error) {
     console.error('Error loading data:', error);

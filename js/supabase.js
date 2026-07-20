@@ -308,3 +308,36 @@ export async function deletePromocion(id) {
   if (error) throw new Error(error.message);
   clearSessionCache('mirlo_promociones_');
 }
+
+// ── PEDIDOS ───────────────────────────────────────────────
+export async function insertPedido(pedido, detalles) {
+  const { data, error } = await supabase
+    .from('pedidos')
+    .insert({
+      perfil_id: pedido.perfil_id,
+      empresa_id: pedido.empresa_id,
+      estado: pedido.estado,
+      total: pedido.total,
+      vendedor_id: pedido.vendedor_id,
+      notas: pedido.notas || null
+    })
+    .select('id')
+    .single();
+  if (error) throw new Error(error.message);
+
+  const { error: detError } = await supabase
+    .from('pedido_detalle')
+    .insert(detalles.map(d => ({ ...d, pedido_id: data.id })));
+  if (detError) throw new Error(detError.message);
+
+  return data.id;
+}
+
+export async function fetchPedidosUsuario() {
+  const { data, error } = await supabase
+    .from('pedidos')
+    .select('*, pedido_detalle(*, productos(id, name, brand, cat))')
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return data || [];
+}

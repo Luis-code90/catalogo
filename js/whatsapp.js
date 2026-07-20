@@ -3,11 +3,11 @@ import {
   getPendingSend, setPendingSend, getWhatsappPhone, getSelectedVendor,
   getIsExistingClient, setIsExistingClient,
   getCurrentPerfil, setClientName, setClientBusiness, setClientAddress,
-  getVendors, setSelectedVendor
+  getVendors, setSelectedVendor, getEmpresaId
 } from './state.js';
 import { getPriceFunda, clearCart } from './cart.js';
 import { fmt } from './ui.js';
-import { saveOrder } from './storage.js';
+import { insertPedido } from './supabase.js';
 import { showStep } from './client.js';
 
 export function getCartMessage() {
@@ -45,7 +45,6 @@ export function getCartMessage() {
 }
 
 export function doSendToWhatsApp() {
-  saveOrder();
   const vendor = getSelectedVendor();
   const phone = vendor ? vendor.phone : getWhatsappPhone();
   const isExisting = getIsExistingClient();
@@ -70,6 +69,43 @@ export function doSendToWhatsApp() {
   const url = isMobile
     ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
     : `https://web.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
+
+  // Guardar en Supabase antes de limpiar el carrito.
+  // Fire-and-forget intencional: el fallo del insert no bloquea el envío por WhatsApp.
+  const perfil = getCurrentPerfil();
+  if (perfil) {
+    const cartSnapshot = getCART();
+    const asignado = perfil.vendedores_asignados?.[0];
+    const vendedorId = asignado?.vendedor_id
+      || getVendors().find(v => v.phone === vendor?.phone)?.id
+      || null;
+
+    const total = cartSnapshot.reduce((sum, item) => {
+      const pf = getPriceFunda(item.product);
+      return sum + (pf ? pf * item.qty : 0);
+    }, 0);
+
+    const detalles = cartSnapshot.map(item => {
+      const p = item.product;
+      const precioUnitario = p.pcom ?? p.ppub;
+      return {
+        producto_id: p.id,
+        cantidad: item.qty,
+        unidades_por_paquete: p.units,
+        precio_unitario: precioUnitario,
+        subtotal: precioUnitario * p.units * item.qty
+      };
+    });
+
+    insertPedido({
+      perfil_id: perfil.id,
+      empresa_id: getEmpresaId(),
+      estado: 'enviado',
+      total,
+      vendedor_id: vendedorId,
+      notas: null
+    }, detalles).catch(e => console.error('Error al guardar pedido en Supabase:', e));
+  }
 
   clearCart();
   window.open(url, '_blank');

@@ -24,6 +24,7 @@ let modalFundaSize = 6;
 let modalBottleMode = 'unit';
 
 let whatsappPhone = '';
+let empresaId = null;
 let promociones = [];
 
 // ── CONSTANTS ────────────────────────────────────────────
@@ -50,6 +51,7 @@ export function getSelectedVendor() { return selectedVendor; }
 export function getIsExistingClient() { return isExistingClient; }
 export function getPromociones() { return promociones; }
 export function getWhatsappPhone() { return whatsappPhone; }
+export function getEmpresaId() { return empresaId; }
 export function getCurrentUser() { return currentUser; }
 export function getCurrentPerfil() { return currentPerfil; }
 export function getUserRole() { return userRole; }
@@ -73,6 +75,7 @@ export function setSelectedVendor(v) { selectedVendor = v; localStorage.setItem(
 export function setIsExistingClient(v) { isExistingClient = v; }
 export function setPromociones(v) { promociones = v; }
 export function setWhatsappPhone(v) { whatsappPhone = v; }
+export function setEmpresaId(v) { empresaId = v; }
 export function setCurrentUser(v) { currentUser = v; }
 export function setCurrentPerfil(v) { currentPerfil = v; }
 export function setUserRole(v) { userRole = v; }
