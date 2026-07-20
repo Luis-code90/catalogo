@@ -25,21 +25,3 @@ export function loadCart() {
   }
 }
 
-export function saveOrder() {
-  const CART = getCART();
-  if (CART.length === 0) return;
-  const total = CART.reduce((sum, item) => {
-    const p = item.product;
-    const pf = p.pcom ? p.pcom * p.units : null;
-    return sum + (pf ? pf * item.qty : 0);
-  }, 0);
-  const entry = {
-    date: new Date().toISOString(),
-    items: CART.map(item => ({ id: item.id, name: item.product.brand + ' ' + item.product.name, qty: item.qty, units: item.product.units, cat: item.product.cat })),
-    total
-  };
-  const history = JSON.parse(localStorage.getItem('mirlo_order_history') || '[]');
-  history.unshift(entry);
-  if (history.length > 5) history.length = 5;
-  localStorage.setItem('mirlo_order_history', JSON.stringify(history));
-}
