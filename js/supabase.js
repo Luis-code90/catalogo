@@ -278,6 +278,10 @@ export async function upsertPromocion(promo) {
 }
 
 export async function fetchProductosAdmin(empresaId) {
+  const key = `mirlo_productos_admin_${empresaId}`;
+  const cached = sessionStorage.getItem(key);
+  if (cached) return JSON.parse(cached);
+
   const { data, error } = await supabase
     .from('productos')
     .select('id, name, brand, cat, size, units, pcom, ppub, activo')
@@ -287,6 +291,7 @@ export async function fetchProductosAdmin(empresaId) {
     .order('activo', { ascending: false })
     .order('name');
   if (error) throw new Error(error.message);
+  sessionStorage.setItem(key, JSON.stringify(data));
   return data;
 }
 
