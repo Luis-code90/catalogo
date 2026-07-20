@@ -357,9 +357,36 @@ Si el usuario no es admin, lanzan RAISE EXCEPTION 'Acceso denegado'.
 
 ### Panel admin completo — todas las fases implementadas
 
+## Historial de pedidos — Supabase como fuente de verdad (julio 2026)
+Primer uso del frontend escribiendo en Supabase para datos transaccionales
+(fuera de RPCs). Las tablas pedidos y pedido_detalle ya tenían RLS configurada.
+
+### Flujo de insert (whatsapp.js → supabase.js)
+- `doSendToWhatsApp()` hace un fire-and-forget de `insertPedido()` antes de `clearCart()`.
+  Si el insert falla, el error se loguea pero el envío por WhatsApp sigue igual (decisión intencional).
+- `estado` fijo en `'enviado'`. Futuros estados (`confirmado`, `entregado`) se agregarán
+  cuando el panel admin tenga UI para cambiarlos.
+- `empresa_id`: viene de `getEmpresaId()` (state.js). Nota: `pedidos.empresa_id` es integer
+  en Supabase pero `empresas.id` es uuid — inconsistencia conocida pendiente de fix en DB.
+- `vendedor_id`: resuelto desde `perfil.vendedores_asignados[0].vendedor_id` (UUID del perfil)
+  o matching por phone del `getSelectedVendor()` contra `getVendors()`.
+- `precio_unitario`: congela `pcom ?? ppub` al momento del pedido (no muta si los precios cambian).
+- `unidades_por_paquete`: refleja las unidades reales del carrito (6 para cerveza, 1 para destilados, etc.).
+
+### Lectura del historial (history.js → supabase.js)
+- `fetchPedidosUsuario()` hace `SELECT pedidos.*, pedido_detalle(*, productos(name, brand, cat))`
+  ordenado por `created_at DESC`. RLS filtra automáticamente por `auth.uid()`.
+- `openOrderHistory()` es async — abre overlay con loading state inmediatamente, luego renderiza.
+- El historial viejo en localStorage (`mirlo_order_history`) no se migró — se descarta.
+- `saveOrder()` en storage.js eliminada. El localStorage ya no se usa para pedidos.
+
+### Base para Fase 2
+Esta tabla de pedidos es la fuente de datos para el futuro dashboard de ventas del admin.
+
 ## Pendientes
 - fecha_lanzamiento en productos para ordenar y archivar lanzamientos
 - Reemplazar barcodes temporales (TEMP-106 a TEMP-114) por códigos reales
+- Corregir tipo de pedidos.empresa_id (integer → uuid) en Supabase para alinear con empresas.id
 
 ## Auditoría de código (junio 2026)
 Análisis completo realizado antes de pruebas con vendedores. 22 problemas en 5 categorías.
