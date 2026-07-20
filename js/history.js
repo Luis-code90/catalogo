@@ -1,37 +1,58 @@
 import { fmt } from './ui.js';
+import { fetchPedidosUsuario } from './supabase.js';
 
-export function openOrderHistory() {
+const MONTHS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+function formatDate(iso) {
+  const d = new Date(iso);
+  const h = String(d.getHours()).padStart(2,'0');
+  const m = String(d.getMinutes()).padStart(2,'0');
+  return `${d.getDate()} ${MONTHS[d.getMonth()]} · ${h}:${m}`;
+}
+
+function renderDetalle(detalle) {
+  const p = detalle.productos;
+  if (!p) return '';
+  const name = `${p.brand || ''} ${p.name}`.trim();
+  const units = detalle.unidades_por_paquete;
+  const qty = detalle.cantidad;
+  const qtyDisplay = p.cat === 'vino' || p.cat === 'sidra'
+    ? units === 1
+      ? `${qty} unidad${qty > 1 ? 'es' : ''}`
+      : `${qty} caja${qty > 1 ? 's' : ''} (${qty * 6} u.)`
+    : units === 1
+      ? `${qty} unidad${qty > 1 ? 'es' : ''}`
+      : `${qty} funda${qty > 1 ? 's' : ''} (${qty * units} u.)`;
+  return `<div class="history-item-product">• ${name} — ${qtyDisplay}</div>`;
+}
+
+export async function openOrderHistory() {
   const overlay = document.getElementById('historyOverlay');
   const list = document.getElementById('historyList');
-  const history = JSON.parse(localStorage.getItem('mirlo_order_history') || '[]');
-  if (history.length === 0) {
-    list.innerHTML = '<div class="history-empty">No hay pedidos anteriores.</div>';
-  } else {
-    list.innerHTML = history.map(entry => {
-      const date = new Date(entry.date);
-      const day = date.getDate();
-      const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-      const month = months[date.getMonth()];
-      const hours = String(date.getHours()).padStart(2,'0');
-      const mins = String(date.getMinutes()).padStart(2,'0');
-      const dateStr = `${day} ${month} · ${hours}:${mins}`;
-      const itemsHtml = entry.items.map(item => {
-        const qtyDisplay = item.cat === 'vino' || item.cat === 'sidra'
-          ? item.units === 1
-            ? `${item.qty} unidad${item.qty > 1 ? 'es' : ''}`
-            : `${item.qty} caja${item.qty > 1 ? 's' : ''} (${item.qty * 6} u.)`
-          : `${item.qty} funda${item.qty > 1 ? 's' : ''} (${item.qty * item.units} u.)`;
-        return `<div class="history-item-product">• ${item.name} — ${qtyDisplay}</div>`;
-      }).join('');
-      return `<div class="history-item">
-        <div class="history-item-date">${dateStr}</div>
-        ${itemsHtml}
-        <div class="history-item-total">${fmt(entry.total)}</div>
-      </div>`;
-    }).join('');
-  }
+
+  list.innerHTML = '<div class="history-empty">Cargando historial...</div>';
   overlay.classList.add('open');
   document.body.style.overflow = 'hidden';
+
+  try {
+    const pedidos = await fetchPedidosUsuario();
+
+    if (pedidos.length === 0) {
+      list.innerHTML = '<div class="history-empty">No hay pedidos anteriores.</div>';
+      return;
+    }
+
+    list.innerHTML = pedidos.map(pedido => `
+      <div class="history-item">
+        <div class="history-item-date">${formatDate(pedido.created_at)}</div>
+        ${(pedido.pedido_detalle || []).map(renderDetalle).join('')}
+        <div class="history-item-total">${fmt(pedido.total)}</div>
+      </div>
+    `).join('');
+  } catch (e) {
+    list.innerHTML = '<div class="history-empty">Error al cargar historial. Intentá de nuevo.</div>';
+    console.error('Error fetching order history:', e);
+  }
 }
 
 export function closeOrderHistory() {
