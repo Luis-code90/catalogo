@@ -33,7 +33,7 @@ export function openModal(p) {
   } else {
     document.getElementById('mUnits').textContent = p.units + ' unidades';
   }
-  document.getElementById('mPCom').textContent  = fmt(p.pcom);
+  document.getElementById('mPCom').textContent  = p.pcom != null ? fmt(p.pcom) : '—';
   document.getElementById('mPPub').textContent  = fmt(p.ppub);
 
   if (p.cat === 'cerveza') {
