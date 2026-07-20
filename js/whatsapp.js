@@ -100,7 +100,7 @@ export function doSendToWhatsApp() {
     insertPedido({
       perfil_id: perfil.id,
       empresa_id: getEmpresaId(),
-      estado: 'enviado',
+      estado: 'pendiente',
       total,
       vendedor_id: vendedorId,
       notas: null

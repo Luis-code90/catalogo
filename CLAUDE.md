@@ -364,8 +364,9 @@ Primer uso del frontend escribiendo en Supabase para datos transaccionales
 ### Flujo de insert (whatsapp.js → supabase.js)
 - `doSendToWhatsApp()` hace un fire-and-forget de `insertPedido()` antes de `clearCart()`.
   Si el insert falla, el error se loguea pero el envío por WhatsApp sigue igual (decisión intencional).
-- `estado` fijo en `'enviado'`. Futuros estados (`confirmado`, `entregado`) se agregarán
-  cuando el panel admin tenga UI para cambiarlos.
+- `estado` inicial `'pendiente'` al insertar desde WhatsApp. El constraint de la columna
+  acepta cuatro valores: `pendiente`, `confirmado`, `entregado`, `cancelado`.
+  Los demás estados se setearán desde el panel admin cuando haya UI para ello.
 - `empresa_id`: viene de `getEmpresaId()` (state.js). Nota: `pedidos.empresa_id` es integer
   en Supabase pero `empresas.id` es uuid — inconsistencia conocida pendiente de fix en DB.
 - `vendedor_id`: resuelto desde `perfil.vendedores_asignados[0].vendedor_id` (UUID del perfil)
