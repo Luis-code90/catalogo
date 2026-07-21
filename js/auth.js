@@ -29,7 +29,9 @@ export async function initAuth() {
 
   const perfil = await getPerfilByUserId(user.id);
 
-  if (!perfil || perfil.nombre === '') {
+  // Gate de aprobación: solo estado 'activo' (seteado por el admin al aprobar)
+  // da acceso completo. Un perfil recién registrado queda 'pendiente'.
+  if (!perfil || perfil.estado !== 'activo') {
     setUserRole('pending');
     setCurrentUser(user);
     showAuthPending();
@@ -188,7 +190,7 @@ export async function handleLogin() {
     const { user } = await loginUser(email, password);
     const perfil = await getPerfilByUserId(user.id);
 
-    if (!perfil || perfil.nombre === '') {
+    if (!perfil || perfil.estado !== 'activo') {
       setCurrentUser(user);
       setUserRole('pending');
       showAuthPending();

@@ -32,6 +32,15 @@ El mismo código sirve múltiples empresas via slug en la URL.
 - pending: autenticado pero esperando aprobación del admin
 - authenticated: acceso completo, puede hacer pedidos por WhatsApp
 
+Gate de aprobación (julio 2026): initAuth y handleLogin deciden pending vs
+authenticated con `perfil.estado !== 'activo'`. Solo el admin puede setear
+'activo' (RPC update_perfil_admin al aprobar). Antes el gate era `nombre === ''`,
+que el registro simplificado siempre llenaba — cualquier registrado accedía sin
+aprobación. `perfiles.rol` es la autoridad server-side (las RPCs admin la validan);
+su escritura directa está bloqueada por grants de columna en Postgres:
+`GRANT UPDATE (nombre, apellido, telefono) ON perfiles TO authenticated` —
+rol/estado/canal solo se escriben vía RPC update_perfil_admin.
+
 ## Gate de alcohol
 Si fecha_nacimiento en perfiles indica menor de 18, hideAlcohol() oculta
 categorías cerveza/vino/sidra antes del render.
@@ -128,7 +137,7 @@ Actualización junio 2026:
 | apellido         | text    |                                    |
 | telefono         | text    | nullable                           |
 | fecha_nacimiento | date    | nullable — usado para gate alcohol |
-| estado           | text    | 'pendiente' o 'aprobado'           |
+| estado           | text    | 'pendiente' o 'activo' — gatea el acceso al catálogo |
 | created_at       | timestamptz |                               |
 | updated_at       | timestamptz |                               |
 
@@ -195,6 +204,19 @@ RLS activa con policy de lectura pública (using (true)).
 - pedidos.empresa_id es integer pero empresas.id es uuid — posible bug
 - pedidos.vendedor_id es integer pero vendedores.id es uuid — posible bug
 - productos.id es integer pero el resto de las PKs son uuid
+
+## Contrato de escritura directa a Supabase (grants de columna)
+Ejecutados y verificados en Supabase (julio 2026). Cualquier campo nuevo que el
+frontend deba escribir requiere ampliar el GRANT correspondiente en Supabase —
+si no, el insert/update falla con error de permisos.
+
+- perfiles INSERT (registro): id, email, empresa_id, nombre, apellido, telefono, fecha_nacimiento
+- perfiles UPDATE (panel de perfil): nombre, apellido, telefono
+- perfiles rol / estado / canal: SOLO vía RPC update_perfil_admin
+- comercios INSERT: protegido por policy RLS con WITH CHECK (sin grant de columnas)
+- comercios UPDATE (panel de perfil): nombre_comercial, rut, direccion, horario_recepcion
+  Nota: la policy UPDATE de comercios tiene WITH CHECK en null — la defensa real
+  es el grant de columnas, no la policy.
 
 ## Convenciones y restricciones
 - Sin frameworks, sin npm, sin bundler — todo vanilla
