@@ -5,12 +5,11 @@ Alcance: riesgos concretos con archivo:línea, deuda técnica priorizada y
 discrepancias con CLAUDE.md. Sin refactors de arquitectura — todo dentro
 del approach Vanilla JS actual.
 
-**Resumen ejecutivo:** el código está en buen estado general para Fase 0,
-pero hay dos hallazgos críticos de control de acceso que deben resolverse
-antes de operar con usuarios reales: (1) la superficie de escalada de
-privilegios vía UPDATE directo a `perfiles`, y (2) el gate de aprobación
-de admin que hoy no bloquea a nadie. Ambos son invisibles en el uso normal
-— solo se manifiestan ante un usuario malicioso o al revisar la base.
+**Resumen ejecutivo:** el código está en buen estado general para Fase 0.
+Se identificaron dos hallazgos críticos de control de acceso — (1) la
+superficie de escalada de privilegios vía UPDATE directo a `perfiles`, y
+(2) el gate de aprobación de admin que no bloqueaba a nadie — **ambos
+resueltos y verificados en producción al 21/07/2026** (ver C1 y C2 abajo).
 
 ---
 
@@ -51,10 +50,16 @@ que esto no rompe nada del flujo actual. Verificar el equivalente para `comercio
 **Estado:** no 100% verificable desde el repo — depende de las policies/grants reales.
 Verificación pendiente en Supabase (ver sección 4).
 
-> **RESUELTO — 20 jul 2026:** grants de columna ejecutados y verificados en Supabase
+> **RESUELTO — 20 jul 2026.** Grants de columna ejecutados y verificados en Supabase
 > (SQL final en sección 5). Sin cambios JS. La escritura directa de `rol`/`estado`/`canal`
 > desde el cliente ahora falla con error de permisos; solo la RPC `update_perfil_admin`
 > puede modificarlos.
+>
+> **VERIFICADO EN PRODUCCIÓN — 21 jul 2026.** Prueba funcional manual: intento de
+> `update({rol:'admin'})` desde la consola del navegador con un usuario común →
+> bloqueado con `403 permission denied for column rol`. Edición de perfil (nombre,
+> apellido, teléfono) y de comercio desde la UI del panel de usuario → funcionando
+> correctamente.
 
 #### C1b. Hallazgo derivado (verificación 20 jul): policy UPDATE de `comercios` sin WITH CHECK
 Durante la verificación de C1 se encontró que la policy de UPDATE en `comercios`
@@ -90,10 +95,15 @@ if (!perfil || perfil.estado !== 'activo') { setUserRole('pending'); ... }
 (usar `'activo'`, que es lo que setea `aprobarUsuario` — ver discrepancia D1).
 Aplicar en ambos puntos: `initAuth` y `handleLogin`.
 
-> **RESUELTO — 20 jul 2026:** aplicado en `auth.js` (initAuth y handleLogin gatean
+> **RESUELTO — 20 jul 2026.** Aplicado en `auth.js` (initAuth y handleLogin gatean
 > por `perfil.estado !== 'activo'`). Verificado en Supabase que no hay perfiles
 > legacy fuera de 'activo' (SELECT de distribución, 0 filas) — el gate no bloquea
 > a ningún usuario existente.
+>
+> **VERIFICADO EN PRODUCCIÓN — 21 jul 2026.** Prueba funcional manual: registro
+> de usuario nuevo → cae correctamente en pantalla "pendiente" pese a tener nombre
+> completo. Aprobación desde el panel admin → login del usuario aprobado → acceso
+> completo a precios, carrito y pedidos.
 
 ### 🟠 ALTO
 
