@@ -8,6 +8,9 @@ const CANALES = [
   { value: 'GRUPOS DE COMPRA', label: 'Grupos de Compra' }
 ];
 
+const esc = s => String(s ?? '').replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
 let empresaId = null;
 
 async function initAdmin() {
@@ -64,7 +67,7 @@ async function loadPendientes() {
         ${pendientes.map(p => `
           <div class="admin-card" data-perfil-id="${p.id}">
             <div class="admin-card-info">
-              <div class="admin-card-name">${p.email}</div>
+              <div class="admin-card-name">${esc(p.email)}</div>
               <div class="admin-card-meta">Registrado: ${new Date(p.created_at).toLocaleDateString('es-UY')}</div>
             </div>
             <div class="admin-approve-controls">
@@ -142,8 +145,8 @@ async function loadActivos() {
         ${filtrados.map(p => `
           <div class="admin-card" data-perfil-id="${p.id}">
             <div class="admin-card-info">
-              <div class="admin-card-name">${p.nombre} ${p.apellido || ''}</div>
-              <div class="admin-card-meta">${p.email} · ${p.comercios?.nombre_comercial || '—'}</div>
+              <div class="admin-card-name">${esc(p.nombre)} ${esc(p.apellido || '')}</div>
+              <div class="admin-card-meta">${esc(p.email)} · ${esc(p.comercios?.nombre_comercial || '—')}</div>
             </div>
             <select class="admin-canal-select" data-id="${p.id}" data-estado="${p.estado}" data-rol="${p.rol}">
               ${CANALES.map(c => `<option value="${c.value}" ${p.canal === c.value ? 'selected' : ''}>${c.label}</option>`).join('')}
@@ -256,11 +259,11 @@ async function showPromoForm(promo = null) {
         </div>
         <div class="admin-form-group">
           <label>Código combo</label>
-          <input id="pf-codigo" type="text" value="${promo?.codigo || ''}">
+          <input id="pf-codigo" type="text" value="${esc(promo?.codigo || '')}">
         </div>
         <div class="admin-form-group">
           <label>Tipo promo (badge)</label>
-          <input id="pf-tipo" type="text" placeholder="ej: 9.63% OFF, 6x5, 5+1" value="${promo?.tipo_promo || ''}">
+          <input id="pf-tipo" type="text" placeholder="ej: 9.63% OFF, 6x5, 5+1" value="${esc(promo?.tipo_promo || '')}">
         </div>
         <div class="admin-form-group">
           <label>Descuento %</label>
@@ -268,7 +271,7 @@ async function showPromoForm(promo = null) {
         </div>
         <div class="admin-form-group">
           <label>Drop size (texto)</label>
-          <input id="pf-dropsize" type="text" placeholder="ej: 2 SIX PACK" value="${promo?.drop_size || ''}">
+          <input id="pf-dropsize" type="text" placeholder="ej: 2 SIX PACK" value="${esc(promo?.drop_size || '')}">
         </div>
         <div class="admin-form-group">
           <label>Drop cantidad (unidades)</label>

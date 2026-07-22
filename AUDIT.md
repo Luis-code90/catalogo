@@ -108,7 +108,7 @@ Aplicar en ambos puntos: `initAuth` y `handleLogin`.
 ### 🟠 ALTO
 
 #### A1. XSS almacenado en el panel admin vía datos controlados por el usuario
-**Dónde:** `js/admin.js:67` (`${p.email}`), `js/admin.js:145-146` (`${p.nombre}`,
+**Dónde:** `js/admin.js:70` (`${p.email}`), `js/admin.js:148-149` (`${p.nombre}`,
 `${p.apellido}`, `${p.comercios?.nombre_comercial}`) — interpolados en `innerHTML`.
 
 `perfiles.nombre` lo escribe el usuario al registrarse sin sanitización. Un registro
@@ -117,9 +117,10 @@ cuando abre la tab de usuarios pendientes. Desde ahí el atacante puede llamar
 cualquier RPC admin con las credenciales del admin (aprobarse a sí mismo, cambiar
 precios, etc.). Es la vía de escalada alternativa a C1.
 
-Mismo patrón con menor riesgo en: `showPromoForm` (admin.js:259+, `value="${promo?.codigo}"`
-— datos creados por admins), `js/cart.js:84` y `js/ui.js:49-52` (nombres de producto —
-datos de admin), `js/client.js` (datos propios del usuario, se auto-afectaría).
+Mismo patrón con menor riesgo en: `showPromoForm` (admin.js:262,266,274 —
+`value="${promo?.codigo}"`, `tipo_promo`, `drop_size`, datos creados por admins),
+`js/cart.js:84` y `js/ui.js:49-52` (nombres de producto — datos de admin),
+`js/client.js` (datos propios del usuario, se auto-afectaría).
 
 **Fix sugerido:** helper de ~5 líneas en admin.js (o ui.js) y aplicarlo a todo dato
 de origen usuario que entre a un template:
@@ -127,6 +128,15 @@ de origen usuario que entre a un template:
 const esc = s => String(s ?? '').replace(/[&<>"']/g,
   c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 ```
+
+> **RESUELTO — 21 jul 2026.** Helper `esc()` agregado en `admin.js:12-13`. Aplicado
+> en los 6 puntos de interpolación identificados: `admin.js:70` (email de pendiente),
+> `admin.js:148-149` (nombre, apellido, email y comercio de usuario activo),
+> `admin.js:262,266,274` (`pf-codigo`, `pf-tipo`, `pf-dropsize` en `showPromoForm` —
+> estos van dentro de `value="..."`, así que `esc()` también cierra el vector de
+> escape de atributo vía comillas sin escapar). Fuera de alcance de este fix:
+> `cart.js:84` y `ui.js:49-52` (nombres de producto, catalogado pero no pedido en
+> esta pasada).
 
 #### A2. Colisión promo vs. regular en el carrito — el descuento se pierde en silencio
 **Dónde:** `js/cart.js:20` (`addToCart`) + `js/app.js:395` (handler de promo-cards).
@@ -146,6 +156,31 @@ el código de combo.
 **Fix sugerido:** incluir la promo en la identidad de la entrada — agregar `promoId` al
 producto clonado en app.js:395 y matchear por `id + units + promoId` en `addToCart` /
 `removeFromCart`. Revisar también `refreshCardStates` (ver M1, están acoplados).
+
+#### A3. Contaminación cross-tenant en registro — `empresa_id` sin validar en el INSERT
+**Dónde:** `js/auth.js:263` (`handleRegister`) + policies INSERT de `perfiles`/`comercios`/
+`vendedores_asignados` en Supabase (verificadas 21 jul 2026).
+
+Las tres policies INSERT atan correctamente la fila al usuario autenticado
+(`auth.uid() = id` en perfiles, `auth.uid() = perfil_id` en comercios y
+vendedores_asignados) — **la suplantación de otro usuario está bloqueada**. Pero
+ninguna `with_check` restringe el valor de `empresa_id`. El cliente lo obtiene de
+`fetchEmpresa(slug)` y lo manda tal cual en el INSERT; nada en RLS impide que un
+cliente modificado (o un bug futuro) inserte un perfil con un `empresa_id` que no
+corresponde al slug desde el que se registró.
+
+No es fuga de datos — la policy SELECT (`auth.uid() = id`) ya impide que cualquiera
+lea perfiles ajenos, sin importar la empresa. El riesgo es de **integridad**: un
+usuario podría terminar registrado "dentro" de otra empresa, apareciendo en el panel
+de pendientes de un catálogo que no es el suyo.
+
+**Severidad:** baja. Hoy hay una sola empresa activa (Mirlo SAS), así que el impacto
+práctico es nulo. Se vuelve relevante cuando se sume una segunda empresa al sistema
+multi-tenant.
+
+**Sin fix por ahora:** el diseño correcto depende de cómo se vaya a gestionar el alta
+de la próxima empresa (¿validar `empresa_id` contra el slug con un trigger? ¿scoping
+adicional en la policy?) — decisión pendiente, no tomarla apurado.
 
 ### 🟡 MEDIO
 
@@ -235,13 +270,14 @@ e `initCarousel` idempotentes (o `clearInterval` del intervalo previo).
 |---|-----|---------------|
 | C1 | Grants de columna en `perfiles` (SQL) | Escalada de privilegios con la anon key pública. Sin tocar JS. |
 | C2 | Gate por `estado` en initAuth/handleLogin | El flujo de aprobación es la premisa del modelo B2B y hoy no existe. 2 líneas. |
-| A1 | Helper `esc()` en admin.js | Stored XSS que convierte cualquier registro malicioso en compromiso del admin. ~15 min. |
+| A1 | ~~Helper `esc()` en admin.js~~ | ✅ Resuelto 21 jul 2026. |
 | A2 | `promoId` en la identidad del carrito | Cobra precio lleno en pedidos que el cliente cree promocionales — riesgo comercial directo. |
 | M3 | Limpiar localStorage en logout | 4 líneas, y es un leak de datos personales en el caso de uso típico B2B. |
 
 ### Puede esperar (agendar, no ignorar)
 | # | Qué | Por qué puede esperar |
 |---|-----|----------------------|
+| A3 | Validar empresa_id en INSERT (perfiles/comercios) | Impacto nulo con una sola empresa activa; el diseño depende de cómo se gestione el alta multi-tenant, aún no definido. |
 | M1 | Unificar contadores en refreshCardStates | Requiere tocar lo mismo que A2 — hacerlo en la misma pasada de carrito, pero después. |
 | M2 | Regla de total para productos sin pcom | Necesita decisión de negocio primero; el dato del detalle es correcto. |
 | M4 | Guard de idempotencia en init | Solo se manifiesta ante re-init completo, que hoy no ocurre en flujos reales. |
@@ -262,10 +298,11 @@ e `initCarousel` idempotentes (o `clearInterval` del intervalo previo).
   "Carrusel dinámico… Visible solo para authenticated", pero la sección posterior
   "Carrusel diferenciado por rol" (correcta) dice que guest también lo ve con su slide
   propio. Borrar la frase vieja.
-- **D4. Tipos de `pedidos.empresa_id`/`vendedor_id`:** el schema en CLAUDE.md los lista
-  como integer y hay un pendiente de migrarlos a uuid. Las correcciones ya se corrieron
-  en Supabase (sesión del 20/7). Confirmar tipos reales y actualizar: la tabla del schema,
-  la sección "Inconsistencias conocidas" y el ítem de "Pendientes".
+- ~~**D4. Tipos de `pedidos.empresa_id`/`vendedor_id`**~~ — **RESUELTO 21 jul 2026:**
+  verificado contra `information_schema` — `empresa_id`, `vendedor_id`, `id` y
+  `perfil_id` son todos `uuid`. La corrección ya está aplicada en Supabase. Falta
+  reflejarlo en la tabla del schema de CLAUDE.md y limpiar la sección "Inconsistencias
+  conocidas" y el ítem de "Pendientes" (tarea de documentación, no de código).
 
 ---
 
@@ -275,15 +312,20 @@ e `initCarousel` idempotentes (o `clearInterval` del intervalo previo).
    grants de columna ejecutados en `perfiles` (INSERT y UPDATE) y `comercios` (UPDATE),
    ver sección 5. Durante la verificación surgió el hallazgo C1b (WITH CHECK null en
    la policy UPDATE de comercios).
-2. **Policies INSERT en `perfiles`/`comercios`/`vendedores_asignados`** — el registro
-   inserta con `empresa_id` arbitrario desde el cliente (auth.js:263); confirmar que no
-   permite crear perfiles en otras empresas.
-3. **Policy SELECT en `perfiles`** — confirmar que un usuario solo lee su propia fila.
-4. **Tipos reales de `pedidos.empresa_id` y `pedidos.vendedor_id`** post-corrección
-   (para cerrar D4).
+2. ~~**Policies INSERT en `perfiles`/`comercios`/`vendedores_asignados`**~~ —
+   **RESUELTO 21 jul 2026:** las tres policies atan el INSERT a `auth.uid()`
+   (`perfiles`: `auth.uid() = id`; `comercios`/`vendedores_asignados`: `auth.uid() =
+   perfil_id`) — la suplantación de otro usuario está bloqueada. RLS confirmada activa
+   en las tres tablas (`relrowsecurity = true`). Ninguna valida `empresa_id`; ver
+   hallazgo nuevo **A3** (severidad baja, sin fix por ahora).
+3. ~~**Policy SELECT en `perfiles`**~~ — **RESUELTO 21 jul 2026:** `qual = (auth.uid()
+   = id)`. Cada usuario solo lee su propia fila; el join con `comercios`/
+   `vendedores_asignados` en `getPerfilByUserId` no filtra datos ajenos.
+4. ~~**Tipos reales de `pedidos.empresa_id` y `pedidos.vendedor_id`**~~ —
+   **RESUELTO 21 jul 2026:** confirmados como `uuid` (ver D4).
 5. **RPCs admin y cross-empresa** — confirmar que `update_perfil_admin`, `upsert_promocion`,
    etc. validan que el recurso pertenece a la empresa del admin que llama (hoy validan
-   rol, no tenancy).
+   rol, no tenancy). Sigue pendiente.
 
 ---
 
