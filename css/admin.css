@@ -71,14 +71,29 @@ body { font-family: 'Sora', sans-serif; background: var(--light); margin: 0; }
 }
 .admin-badge-active { background: #dcfce7; color: #16a34a; }
 .admin-badge-inactive { background: #fee2e2; color: #dc2626; }
-.admin-btn-toggle, .admin-btn-edit {
+.admin-btn-edit {
   border: none; border-radius: 8px; padding: .45rem .9rem;
   font-family: 'Sora', sans-serif; font-size: .78rem; font-weight: 600;
-  cursor: pointer;
+  cursor: pointer; background: var(--light); color: var(--text);
 }
-.admin-btn-off { background: #fee2e2; color: #dc2626; }
-.admin-btn-on { background: #dcfce7; color: #16a34a; }
-.admin-btn-edit { background: var(--light); color: var(--text); }
+.admin-btn-toggle {
+  border: 1.5px solid var(--frost); background: #fff; color: var(--text);
+  border-radius: 8px; padding: .45rem .9rem;
+  font-family: 'Sora', sans-serif; font-size: .78rem; font-weight: 600;
+  cursor: pointer; transition: opacity .15s;
+}
+.admin-btn-toggle:hover { opacity: .8; }
+.admin-btn-toggle-active { border-color: #16a34a; background: #dcfce7; color: #16a34a; }
+.admin-btn-toggle-inactive { border-color: #dc2626; background: #fee2e2; color: #dc2626; }
+.promo-vig-filter {
+  background: #fff; border: 1.5px solid var(--frost); color: var(--text);
+  border-radius: 20px; padding: .4rem 1rem;
+  font-family: 'Sora', sans-serif; font-size: .78rem; font-weight: 600;
+  cursor: pointer; transition: background .15s, color .15s, border-color .15s;
+}
+.promo-vig-filter:hover { border-color: var(--muted); }
+.promo-vig-filter.active { background: var(--deep); color: #fff; border-color: var(--deep); }
+.admin-promo-filters { display: flex; gap: .5rem; margin-bottom: 1rem; flex-wrap: wrap; }
 .admin-btn-delete {
   border: none; border-radius: 8px; padding: .45rem .9rem;
   font-family: 'Sora', sans-serif; font-size: .78rem; font-weight: 600;

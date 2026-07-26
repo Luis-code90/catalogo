@@ -12,6 +12,8 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g,
   c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 let empresaId = null;
+let promosActuales = [];
+let promoFiltro = 'vigentes';
 
 async function initAdmin() {
   const user = await getCurrentUser();
@@ -173,73 +175,96 @@ async function loadPromos() {
   const container = document.getElementById('adminTabContent');
   container.innerHTML = '<p class="admin-loading">Cargando...</p>';
   try {
-    const promos = await fetchPromocionesAdmin(empresaId);
-
-    container.innerHTML = `
-      <div class="admin-promo-header">
-        <h3>Promociones (${promos.length})</h3>
-        <button class="admin-btn-new" onclick="window.showPromoForm()">+ Nueva promo</button>
-      </div>
-      <div id="promoFormContainer"></div>
-      <div class="admin-list">
-        ${promos.map(pr => `
-          <div class="admin-card ${pr.activa ? '' : 'admin-card-inactive'}">
-            <div class="admin-card-img">
-              ${pr.productos?.img ? `<img src="${pr.productos.img}" alt="">` : '📦'}
-            </div>
-            <div class="admin-card-info">
-              <div class="admin-card-name">${pr.productos?.brand || ''} ${pr.productos?.name || pr.nombre}</div>
-              <div class="admin-card-meta">
-                ${pr.tipo_promo} · ${pr.drop_size} · ${pr.canal}
-              </div>
-              <div class="admin-card-meta">
-                ${pr.fecha_inicio} → ${pr.fecha_fin}
-              </div>
-            </div>
-            <div class="admin-card-actions">
-              <span class="admin-badge ${pr.activa ? 'admin-badge-active' : 'admin-badge-inactive'}">
-                ${pr.activa ? 'Activa' : 'Inactiva'}
-              </span>
-              <button class="admin-btn-toggle ${pr.activa ? 'admin-btn-off' : 'admin-btn-on'}"
-                data-id="${pr.id}" data-activa="${pr.activa}">
-                ${pr.activa ? 'Desactivar' : 'Activar'}
-              </button>
-              <button class="admin-btn-edit" data-id="${pr.id}">Editar</button>
-              <button class="admin-btn-delete" data-id="${pr.id}">Eliminar</button>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-
-    container.querySelectorAll('.admin-btn-toggle').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const activa = btn.dataset.activa === 'true';
-        btn.disabled = true;
-        await togglePromocion(parseInt(btn.dataset.id), !activa);
-        loadPromos();
-      });
-    });
-
-    container.querySelectorAll('.admin-btn-edit').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const promo = promos.find(p => p.id === parseInt(btn.dataset.id));
-        showPromoForm(promo);
-      });
-    });
-
-    container.querySelectorAll('.admin-btn-delete').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        if (!confirm('¿Seguro que querés eliminar esta promo? Esta acción no se puede deshacer.')) return;
-        btn.disabled = true;
-        await deletePromocion(parseInt(btn.dataset.id));
-        loadPromos();
-      });
-    });
+    promosActuales = await fetchPromocionesAdmin(empresaId);
+    renderPromosList();
   } catch (e) {
     container.innerHTML = '<p class="admin-empty">Error al cargar datos. Intentá de nuevo.</p>';
     console.error(e);
   }
+}
+
+function renderPromosList() {
+  const container = document.getElementById('adminTabContent');
+  const hoy = new Date().toISOString().split('T')[0];
+
+  const promos = promosActuales.filter(pr => {
+    if (promoFiltro === 'vigentes') return pr.activa && pr.fecha_fin >= hoy;
+    if (promoFiltro === 'vencidas') return pr.fecha_fin < hoy;
+    if (promoFiltro === 'inactivas') return !pr.activa;
+    return true;
+  });
+
+  container.innerHTML = `
+    <div class="admin-promo-header">
+      <h3>Promociones (${promos.length})</h3>
+      <button class="admin-btn-new" onclick="window.showPromoForm()">+ Nueva promo</button>
+    </div>
+    <div class="admin-promo-filters">
+      <button class="promo-vig-filter ${promoFiltro === 'vigentes' ? 'active' : ''}" data-filtro="vigentes">Vigentes</button>
+      <button class="promo-vig-filter ${promoFiltro === 'vencidas' ? 'active' : ''}" data-filtro="vencidas">Vencidas</button>
+      <button class="promo-vig-filter ${promoFiltro === 'inactivas' ? 'active' : ''}" data-filtro="inactivas">Inactivas</button>
+      <button class="promo-vig-filter ${promoFiltro === 'todas' ? 'active' : ''}" data-filtro="todas">Todas</button>
+    </div>
+    <div id="promoFormContainer"></div>
+    <div class="admin-list">
+      ${promos.map(pr => `
+        <div class="admin-card ${pr.activa ? '' : 'admin-card-inactive'}">
+          <div class="admin-card-img">
+            ${pr.productos?.img ? `<img src="${pr.productos.img}" alt="">` : '📦'}
+          </div>
+          <div class="admin-card-info">
+            <div class="admin-card-name">${pr.productos?.brand || ''} ${pr.productos?.name || pr.nombre}</div>
+            <div class="admin-card-meta">
+              ${pr.tipo_promo} · ${pr.drop_size} · ${pr.canal}
+            </div>
+            <div class="admin-card-meta">
+              ${pr.fecha_inicio} → ${pr.fecha_fin}
+            </div>
+          </div>
+          <div class="admin-card-actions">
+            <button class="admin-btn-toggle ${pr.activa ? 'admin-btn-toggle-active' : 'admin-btn-toggle-inactive'}"
+              data-id="${pr.id}" data-activa="${pr.activa}">
+              ${pr.activa ? 'Activa' : 'Inactiva'}
+            </button>
+            <button class="admin-btn-edit" data-id="${pr.id}">Editar</button>
+            <button class="admin-btn-delete" data-id="${pr.id}">Eliminar</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  container.querySelectorAll('.promo-vig-filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      promoFiltro = btn.dataset.filtro;
+      renderPromosList();
+    });
+  });
+
+  container.querySelectorAll('.admin-btn-toggle').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const activa = btn.dataset.activa === 'true';
+      btn.disabled = true;
+      await togglePromocion(parseInt(btn.dataset.id), !activa);
+      loadPromos();
+    });
+  });
+
+  container.querySelectorAll('.admin-btn-edit').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const promo = promosActuales.find(p => p.id === parseInt(btn.dataset.id));
+      showPromoForm(promo);
+    });
+  });
+
+  container.querySelectorAll('.admin-btn-delete').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('¿Seguro que querés eliminar esta promo? Esta acción no se puede deshacer.')) return;
+      btn.disabled = true;
+      await deletePromocion(parseInt(btn.dataset.id));
+      loadPromos();
+    });
+  });
 }
 
 async function showPromoForm(promo = null) {
