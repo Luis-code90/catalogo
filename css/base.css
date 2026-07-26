@@ -272,6 +272,7 @@ main { padding:1.8rem 2rem 4rem; max-width:1480px; margin:0 auto; }
     left: auto; right: 1.5rem; bottom: 5.5rem;
     width: 420px; border-radius: 16px;
     max-height: 70vh;
+    transform: translateY(calc(100% + 5.5rem));
   }
 }
 .calc-body {
