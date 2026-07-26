@@ -58,10 +58,11 @@ categorías cerveza/vino/sidra antes del render.
   inputs border-radius:12px, animación popIn. Estilos en css/overlays.css.
 - Registro simplificado a 5 campos: nombre/empresa, email, teléfono, contraseña ×2.
   Campos eliminados se envían a Supabase como '' o null.
-- Carrusel dinámico (#promoCarousel): reemplaza el banner estático. Visible solo para
-  authenticated. Dos slides: "Promos del mes" (marcas desde getPromociones(), mes actual)
+- Carrusel dinámico (#promoCarousel): reemplaza el banner estático. Dos slides para
+  authenticated: "Promos del mes" (marcas desde getPromociones(), mes actual)
   y "Nuevos lanzamientos" (productos con es_nuevo=true). Auto-rotate cada 4s sin rebote
   (goToSlide con módulo). Dots clickeables. Alineado a max-width: 1280px con .controls-inner.
+  (Ver "Carrusel diferenciado por rol" más abajo — guest tiene su propio slide.)
 
 ## Flujo de registro
 - Registro simplificado — #authRegister en index.html y handleRegister() en js/auth.js
@@ -194,16 +195,15 @@ Actualización junio 2026:
 | tipo_promo    | text         | "6x5", "5+1", "9.63% OFF"           |
 | drop_size     | text         | "2 SIX PACK", "1 FUNDA"             |
 | drop_cantidad | integer      | unidades mínimas del drop            |
-| canal         | text         | pendiente: no filtra por usuario aún |
+| canal         | text         | filtrado client-side via filterByPromo() según perfil.canal |
 | activa        | boolean      | default true                         |
 | fecha_inicio  | date         |                                      |
 | fecha_fin     | date         |                                      |
 RLS activa con policy de lectura pública (using (true)).
 
 ## Inconsistencias conocidas en el esquema
-- pedidos.empresa_id es integer pero empresas.id es uuid — posible bug
-- pedidos.vendedor_id es integer pero vendedores.id es uuid — posible bug
-- productos.id es integer pero el resto de las PKs son uuid
+- productos.id es integer pero el resto de las PKs son uuid — los productos se
+  cargan con ids manuales asignados secuencialmente, sin problema práctico hasta ahora
 
 ## Contrato de escritura directa a Supabase (grants de columna)
 Ejecutados y verificados en Supabase (julio 2026). Cualquier campo nuevo que el
@@ -232,8 +232,8 @@ si no, el insert/update falla con error de permisos.
   y fetchVendedores ahora reciben empresaId como parámetro. loadProducts en
   app.js resuelve fetchEmpresa(slug) primero y pasa el id al Promise.all
   subsiguiente. El arranque hace 3 queries a Supabase sin duplicados.
-- pedidos.empresa_id y pedidos.vendedor_id tienen tipo integer en lugar de uuid
-  — inconsistente con el resto del esquema
+- pedidos.empresa_id y pedidos.vendedor_id tenían tipo integer en lugar de uuid
+  — resuelto en Supabase (verificado 21 jul 2026), ver "Historial de pedidos" abajo.
 - handleLogout() no reseteaba UI post-sesión — resuelto. Limpia campos de login,
   llama updateUIForRole('guest', null) y filter() para re-renderizar el grid.
 - handleLogin() no actualizaba hero ni banner tras login en sesión activa — resuelto.
@@ -246,13 +246,20 @@ si no, el insert/update falla con error de permisos.
   esLitro = p.size.includes('1000') oculta modalFundaSelector y usa p.units directo.
 - updateComercio en supabase.js pasaba datos directamente — resuelto. Ahora mapea
   campos explícitamente y corrige horario → horario_recepcion.
+- Calculadora de precios no se ocultaba del todo en desktop (≥768px) — resuelto.
+  El breakpoint reposiciona #calcPanel con bottom: 5.5rem, pero el transform del
+  estado cerrado (translateY(100%)) solo compensaba la altura propia del panel,
+  no ese offset. Quedaba un sliver de 88px (el header) tapando el ícono del
+  carrito. Ahora translateY(calc(100% + 5.5rem)) en el media query desktop.
 
 ## Cards rediseñadas (autenticado)
 - Cards del catálogo (render()) nunca muestran badge ni descuento: esPromo=false siempre.
   Las promos son exclusivas del grid renderPromos().
 - Promo-cards tienen precio tachado (precioFundaOriginal), precio final con descuento,
   "Ahorras $X" y contador − | qty | + (.promo-qty-selector) en lugar de botón +.
-  Al agregar: calcula precioFinal desde promo.descuento_pct, usa drop_cantidad como units.
+  Al agregar: calcula precioFinal desde promo.descuento_pct, usa drop_cantidad como units,
+  y clona el producto con promoId: promo.id (julio 2026 — identidad de carrito distinta
+  de la funda regular aunque coincidan los units, ver fix A2 en Auditoría de código).
   String(p.id) === promoId para comparar UUID/número en dataset.
 - Tag de canal (.promo-canal-tag): pill pequeño debajo de drop_size en promo-cards.
   Muestra pr.canal en uppercase. Estilo gris sobre var(--light).
@@ -367,8 +374,18 @@ Si el usuario no es admin, lanzan RAISE EXCEPTION 'Acceso denegado'.
   con estado = 'activo'.
 - Usuarios activos: lista con nombre, email, comercio y selector de canal editable.
   Admins filtrados. Cambio de canal guarda via update_perfil_admin automáticamente.
-- Promociones: listado con imagen, badge activa/inactiva, tipo, canal y fechas.
-  Toggle activar/desactivar via RPC toggle_promocion.
+- Promociones: listado con imagen, tipo, canal y fechas. Filtro por vigencia
+  (pills Vigentes/Vencidas/Inactivas/Todas — julio 2026): Vigentes = activa &&
+  fecha_fin >= hoy (default), Vencidas = fecha_fin < hoy sin importar activa,
+  Inactivas = !activa sin importar fecha (se puede solapar con Vencidas, es
+  intencional). loadPromos() hace el fetch una sola vez (guarda en
+  promosActuales, módulo-level); renderPromosList() filtra y renderiza desde
+  memoria — cambiar de pill no dispara una query nueva.
+  Estado + acción fusionados en un solo pill-button (antes: badge de estado +
+  botón de acción por separado, con colores que se contradecían visualmente
+  — ej. badge rojo "Inactiva" al lado de un botón verde "Activar"). Ahora
+  admin-btn-toggle muestra el estado actual (verde "Activa" / rojo "Inactiva")
+  y togglea al click via RPC toggle_promocion.
   Formulario crear/editar con checkboxes de canal múltiple.
   Eliminar via RPC delete_promocion con confirm() nativo.
   Caché sessionStorage de promociones se limpia automáticamente tras cada cambio.
@@ -396,7 +413,7 @@ Primer uso del frontend escribiendo en Supabase para datos transaccionales
 - `estado` inicial `'pendiente'` al insertar desde WhatsApp. El constraint acepta:
   `pendiente`, `confirmado`, `entregado`, `cancelado`. Los demás los setea el panel admin.
 - `empresa_id`: viene de `getEmpresaId()` (state.js, cargado en loadProducts). Es UUID.
-  Nota: `pedidos.empresa_id` era integer — corregir a uuid en Supabase (pendiente).
+  `pedidos.empresa_id` era integer — corregido a uuid en Supabase (verificado 21 jul 2026).
 - `vendedor_id`: resuelto desde `perfil.vendedores_asignados[0].vendedor_id` (UUID del perfil)
   o matching por phone del `getSelectedVendor()` contra `getVendors()`.
 - `precio_unitario`: congela `pcom ?? ppub` al momento del pedido (no muta si los precios cambian).
@@ -417,7 +434,6 @@ Esta tabla de pedidos es la fuente de datos para el futuro dashboard de ventas d
 ## Pendientes
 - fecha_lanzamiento en productos para ordenar y archivar lanzamientos
 - Reemplazar barcodes temporales (TEMP-106 a TEMP-114) por códigos reales
-- Corregir tipo de pedidos.empresa_id (integer → uuid) en Supabase para alinear con empresas.id
 
 ## Auditoría de código (junio 2026)
 Análisis completo realizado antes de pruebas con vendedores. 22 problemas en 5 categorías.
@@ -442,12 +458,35 @@ Resueltos (Fase 0 — julio 2026):
 - mPCom mostraba '$0.00' si pcom es null: ahora muestra '—' para pcom null/undefined.
 - Inputs de calculadora tipo number en mobile: cambiados a type=text + inputmode=decimal
   para usar teclado compacto sin tapar el bottom-sheet.
+- A1 (XSS almacenado en panel admin): helper esc() en admin.js sanitiza nombre,
+  apellido, email y comercio de usuarios, más código/tipo_promo/drop_size del
+  form de promos — todo dato de usuario que entraba a innerHTML/atributos sin
+  escapar. Detalle completo con líneas exactas en AUDIT.md (hallazgo A1).
+- A2 + M1 (colisión promo/regular en carrito y desync de contadores): el carrito
+  identificaba cada entrada solo por id+units. Una promo con drop_cantidad igual
+  a los units regulares (ej. drop de 6 = funda regular de cerveza) se fusionaba
+  con la entrada regular existente y el descuento se perdía en silencio.
+  addToCart/removeFromCart ahora matchean también por promoId (null en ítems
+  regulares; promo.id en los clonados desde promo-cards). refreshCardStates ya
+  no ignora .promo-card — es la única fuente de los contadores visuales en
+  ambas superficies (antes se escribían a mano en los handlers de app.js,
+  causando el desync). El botón "+" del panel del carrito reusa el producto ya
+  almacenado en la entrada en vez de re-derivarlo sin conocimiento de promo
+  (mismo bug de fondo). addToCartById quedó sin callers y se eliminó.
+- FAB de calculadora tapaba el panel del carrito al abrirlo: .calc-btn tenía
+  z-index 999 contra 260 de .cart-panel. Bajado a 240 (entre header/controles
+  190-200 y cart/cart-panel 250-260), igual que ya le pasaba correctamente al
+  botón del carrito.
 
 Pendientes (baja prioridad):
 - ~~U4~~: Panel admin responsive mobile — resuelto (@media 768px y 480px en base.css)
 - C3/C4: console.warn/error en storage.js y app.js en producción
 - S2: Protección admin solo client-side (mitigado por validación en RPCs)
 - get_perfiles_activos no filtra por rol server-side — filtro solo client-side en admin.js:133
+- Idea a futuro (sin diseñar aún): acción masiva "duplicar promos vencidas
+  seleccionadas al próximo período" en vez de editar fecha_fin in-place —
+  preserva historial de qué promo corrió cada mes, reusa upsertPromocion en
+  loop (p_id: null) sin necesitar RPC nueva.
 
 ## Workflow de desarrollo
 - Claude Code edita archivos directamente en VS Code
