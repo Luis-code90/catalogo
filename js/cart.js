@@ -1,4 +1,4 @@
-import { getCART, setCART, getProducts, MIN_ORDER_AMOUNT, getUserRole } from './state.js';
+import { getCART, setCART, MIN_ORDER_AMOUNT, getUserRole } from './state.js';
 import { saveCart } from './storage.js';
 import { fmt, animateCartBounce } from './ui.js';
 
@@ -17,7 +17,12 @@ export function getCartTotal() {
 
 export function addToCart(product, qty = 1) {
   const CART = getCART();
-  const existing = CART.find(item => item.id === product.id && item.product.units === product.units);
+  const promoId = product.promoId ?? null;
+  const existing = CART.find(item =>
+    item.id === product.id &&
+    item.product.units === product.units &&
+    String(item.product.promoId ?? '') === String(promoId ?? '')
+  );
   if (existing) {
     existing.qty += qty;
   } else {
@@ -28,10 +33,14 @@ export function addToCart(product, qty = 1) {
   animateCartBounce();
 }
 
-export function removeFromCart(productId, units, qty = 1) {
+export function removeFromCart(productId, units, qty = 1, promoId = null) {
   const CART = getCART();
-  const index = CART.findIndex(item => item.id === productId && item.product.units === units);
-  if (index === -1) return;
+  const index = CART.findIndex(item =>
+    item.id === productId &&
+    item.product.units === units &&
+    String(item.product.promoId ?? '') === String(promoId ?? '')
+  );
+  if (index === -1) { refreshCardStates(); return; }
 
   CART[index].qty -= qty;
   if (CART[index].qty <= 0) {
@@ -88,8 +97,8 @@ export function updateCartUI() {
             <div class="ci-subtotal">${fmt(pf * item.qty)}</div>
           </div>
           <div class="ci-actions">
-            <button class="ci-btn" data-action="remove" data-id="${item.id}" data-units="${p.units}">−</button>
-            <button class="ci-btn" data-action="add" data-id="${item.id}" data-units="${p.units}">+</button>
+            <button class="ci-btn" data-action="remove" data-id="${item.id}" data-units="${p.units}" data-promo-id="${p.promoId ?? ''}">−</button>
+            <button class="ci-btn" data-action="add" data-id="${item.id}" data-units="${p.units}" data-promo-id="${p.promoId ?? ''}">+</button>
           </div>
         </div>
       `}).join('');
@@ -124,32 +133,23 @@ export function refreshCardStates() {
   document.querySelectorAll('#grid .card').forEach(card => {
     const id = parseInt(card.dataset.productId);
     if (isNaN(id)) return;
-    if (card.classList.contains('promo-card')) return;
+
+    if (card.classList.contains('promo-card')) {
+      const promoId = card.dataset.promoId;
+      const drop = parseInt(card.dataset.dropCantidad);
+      const totalQty = CART
+        .filter(c => c.id === id && c.product.units === drop && String(c.product.promoId ?? '') === String(promoId))
+        .reduce((sum, c) => sum + c.qty, 0);
+      const qtyEl = card.querySelector('.pqs-qty');
+      if (qtyEl) qtyEl.textContent = totalQty;
+      return;
+    }
+
     const totalQty = CART
-      .filter(c => c.id === id)
+      .filter(c => c.id === id && (c.product.promoId ?? null) == null)
       .reduce((sum, c) => sum + c.qty, 0);
     const qtyEl = card.querySelector('.cqs-qty');
     if (qtyEl) qtyEl.textContent = totalQty;
     card.classList.toggle('in-cart', totalQty > 0);
   });
-}
-
-export function addToCartById(productId, btn, units) {
-  const PRODUCTS = getProducts();
-  const product = PRODUCTS.find(p => p.id === productId);
-  if (!product) return;
-  const productWithSize = units ? { ...product, units } : product;
-  addToCart(productWithSize);
-  if (btn) {
-    btn.textContent = '✓';
-    btn.classList.add('c-btn-check');
-    setTimeout(() => {
-      btn.classList.remove('c-btn-check');
-      const CART = getCART();
-      const totalQty = CART
-        .filter(c => c.id === productId)
-        .reduce((sum, c) => sum + c.qty, 0);
-      btn.textContent = totalQty > 0 ? '×' + totalQty : '+';
-    }, 600);
-  }
 }

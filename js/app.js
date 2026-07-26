@@ -1,5 +1,5 @@
 import { initAuth, handleLogin, handleRegister, handleLogout, showAuthLogin, showAuthRegister, continueAsGuest, showAuthOverlay, showForgotPassword, handleForgotPassword, listenForRecovery, handleSetNewPassword, showSetNewPassword } from './auth.js';
-import { setProducts, getProducts, setIsAdult, setVendedores, setWhatsappPhone, setEmpresaId, setPromociones, getPromociones, getUserRole, getCurrentPerfil } from './state.js';
+import { setProducts, getProducts, setIsAdult, setVendedores, setWhatsappPhone, setEmpresaId, setPromociones, getPromociones, getUserRole, getCurrentPerfil, getCART } from './state.js';
 import { fetchProductos, fetchVendedores, fetchEmpresa, fetchPromociones } from './supabase.js';
 import { updateCartUI } from './cart.js';
 import { loadCart } from './storage.js';
@@ -8,7 +8,7 @@ import { filter, setCat, hideAlcohol } from './filters.js';
 import { sendToWhatsApp } from './whatsapp.js';
 import { updateClientInfoLine, editClientInfo, confirmClientInfo, cancelClientInfo, setClientType, clientStepBack, clientStepNext, openClientModal, showStep } from './client.js';
 import { openOrderHistory, closeOrderHistory, closeHistoryBg } from './history.js';
-import { clearCart, addToCart, addToCartById, removeFromCart } from './cart.js';
+import { clearCart, addToCart, removeFromCart } from './cart.js';
 import { updateUIForRole, renderPromos, fmt } from './ui.js';
 import { openProfile, closeProfile, closeProfileBg, saveProfile } from './profile.js';
 
@@ -334,10 +334,15 @@ function setupEventListeners() {
     if (!btn) return;
     const id = parseInt(btn.dataset.id);
     const units = parseInt(btn.dataset.units);
+    const promoId = btn.dataset.promoId || null;
     if (btn.dataset.action === 'remove') {
-      removeFromCart(id, units);
+      removeFromCart(id, units, 1, promoId);
     } else if (btn.dataset.action === 'add') {
-      addToCartById(id, null, units);
+      const entry = getCART().find(item =>
+        item.id === id && item.product.units === units &&
+        String(item.product.promoId ?? '') === String(promoId ?? '')
+      );
+      if (entry) addToCart(entry.product, 1);
     }
   });
 
@@ -368,15 +373,10 @@ function setupEventListeners() {
       const productId = parseInt(cqsBtn.dataset.productId);
       const product = getProducts().find(p => p.id === productId);
       if (!product) return;
-      const qtyEl = card.querySelector('.cqs-qty');
-      const current = parseInt(qtyEl.textContent) || 0;
       if (cqsBtn.classList.contains('cqs-plus')) {
         addToCart(product, 1);
-        qtyEl.textContent = current + 1;
       } else {
-        if (current <= 0) return;
         removeFromCart(productId, product.units);
-        qtyEl.textContent = current - 1;
       }
       return;
     }
@@ -386,23 +386,17 @@ function setupEventListeners() {
       const productId = parseInt(pqsBtn.dataset.productId);
       const promoId = pqsBtn.dataset.promoId;
       const drop = parseInt(pqsBtn.dataset.drop);
-      const qtyEl = document.getElementById(`pqs-qty-${promoId}`);
       const product = getProducts().find(p => p.id === productId);
       if (!product) return;
       const promo = getPromociones().find(p => String(p.id) === promoId);
       if (!promo) return;
       const precioFinal = Math.round(product.pcom * (1 - promo.descuento_pct / 100));
-      const productWithDrop = { ...product, units: drop, pcom: precioFinal, promoCode: promo.codigo };
+      const productWithDrop = { ...product, units: drop, pcom: precioFinal, promoCode: promo.codigo, promoId: promo.id };
 
       if (pqsBtn.classList.contains('pqs-plus')) {
         addToCart(productWithDrop, 1);
-        const current = parseInt(qtyEl.textContent) || 0;
-        qtyEl.textContent = current + 1;
       } else {
-        const current = parseInt(qtyEl.textContent) || 0;
-        if (current <= 0) return;
-        removeFromCart(productId, drop);
-        qtyEl.textContent = current - 1;
+        removeFromCart(productId, drop, 1, promo.id);
       }
       return;
     }
