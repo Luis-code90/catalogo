@@ -108,7 +108,7 @@ Aplicar en ambos puntos: `initAuth` y `handleLogin`.
 ### 🟠 ALTO
 
 #### A1. XSS almacenado en el panel admin vía datos controlados por el usuario
-**Dónde:** `js/admin.js:70` (`${p.email}`), `js/admin.js:148-149` (`${p.nombre}`,
+**Dónde:** `js/admin.js:72` (`${p.email}`), `js/admin.js:150-151` (`${p.nombre}`,
 `${p.apellido}`, `${p.comercios?.nombre_comercial}`) — interpolados en `innerHTML`.
 
 `perfiles.nombre` lo escribe el usuario al registrarse sin sanitización. Un registro
@@ -117,7 +117,7 @@ cuando abre la tab de usuarios pendientes. Desde ahí el atacante puede llamar
 cualquier RPC admin con las credenciales del admin (aprobarse a sí mismo, cambiar
 precios, etc.). Es la vía de escalada alternativa a C1.
 
-Mismo patrón con menor riesgo en: `showPromoForm` (admin.js:262,266,274 —
+Mismo patrón con menor riesgo en: `showPromoForm` (admin.js:287,291,299 —
 `value="${promo?.codigo}"`, `tipo_promo`, `drop_size`, datos creados por admins),
 `js/cart.js:84` y `js/ui.js:49-52` (nombres de producto — datos de admin),
 `js/client.js` (datos propios del usuario, se auto-afectaría).
@@ -129,10 +129,10 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g,
   c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 ```
 
-> **RESUELTO — 21 jul 2026.** Helper `esc()` agregado en `admin.js:12-13`. Aplicado
-> en los 6 puntos de interpolación identificados: `admin.js:70` (email de pendiente),
-> `admin.js:148-149` (nombre, apellido, email y comercio de usuario activo),
-> `admin.js:262,266,274` (`pf-codigo`, `pf-tipo`, `pf-dropsize` en `showPromoForm` —
+> **RESUELTO — 21 jul 2026.** Helper `esc()` agregado en `admin.js:11-12`. Aplicado
+> en los 6 puntos de interpolación identificados: `admin.js:72` (email de pendiente),
+> `admin.js:150-151` (nombre, apellido, email y comercio de usuario activo),
+> `admin.js:287,291,299` (`pf-codigo`, `pf-tipo`, `pf-dropsize` en `showPromoForm` —
 > estos van dentro de `value="..."`, así que `esc()` también cierra el vector de
 > escape de atributo vía comillas sin escapar). Fuera de alcance de este fix:
 > `cart.js:84` y `ui.js:49-52` (nombres de producto, catalogado pero no pedido en
@@ -156,6 +156,12 @@ el código de combo.
 **Fix sugerido:** incluir la promo en la identidad de la entrada — agregar `promoId` al
 producto clonado en app.js:395 y matchear por `id + units + promoId` en `addToCart` /
 `removeFromCart`. Revisar también `refreshCardStates` (ver M1, están acoplados).
+
+> **RESUELTO — 21 jul 2026.** `addToCart`/`removeFromCart` (cart.js) ahora matchean
+> también por `promoId` (`null` en ítems regulares, `promo.id` en los clonados desde
+> promo-cards en `app.js`). El botón "+" del panel del carrito (antes usaba
+> `addToCartById`, que re-derivaba el producto sin conocimiento de promo) ahora reusa
+> el producto ya almacenado en la entrada. Resuelto junto con M1 en el mismo fix.
 
 #### A3. Contaminación cross-tenant en registro — `empresa_id` sin validar en el INSERT
 **Dónde:** `js/auth.js:263` (`handleRegister`) + policies INSERT de `perfiles`/`comercios`/
@@ -205,6 +211,13 @@ app.js y dejar que `refreshCardStates` sea la única fuente (llamándola siempre
 en el early-return de `removeFromCart`). Conviene encararlo junto con A2 porque ambos
 tocan la identidad de las entradas del carrito.
 
+> **RESUELTO — 21 jul 2026.** `refreshCardStates` (cart.js) ya no ignora `.promo-card`
+> — calcula el contador de cada card (regular o promo) filtrando el CART real por
+> `id`/`units`/`promoId`, y es ahora la única fuente que escribe los contadores. Las
+> escrituras manuales de `textContent` en los handlers `cqsBtn`/`pqsBtn` de app.js se
+> eliminaron. `removeFromCart` llama a `refreshCardStates()` incluso en el
+> early-return, como resync defensivo. Resuelto junto con A2 en el mismo fix.
+
 #### M2. `pedidos.total` no coincide con la suma de subtotales del detalle
 **Dónde:** `js/whatsapp.js:83-86` (total) vs. `js/whatsapp.js:94` (precio_unitario).
 
@@ -230,7 +243,7 @@ comercio y dirección del anterior como pre-relleno del flujo de WhatsApp.
 del state.
 
 #### M4. `init()` re-ejecutable duplica listeners e intervalos
-**Dónde:** `js/app.js:502` (`window.init`), `js/app.js:111` (setInterval del carrusel),
+**Dónde:** `js/app.js:497` (`window.init`), `js/app.js:111` (setInterval del carrusel),
 `setupEventListeners` (sin guard).
 
 `init` está expuesta en window y también la invoca el botón "Reintentar" del load-error.
@@ -268,17 +281,17 @@ e `initCarousel` idempotentes (o `clearInterval` del intervalo previo).
 ### Pagar ahora (antes de usuarios reales)
 | # | Qué | Por qué ahora |
 |---|-----|---------------|
-| C1 | Grants de columna en `perfiles` (SQL) | Escalada de privilegios con la anon key pública. Sin tocar JS. |
-| C2 | Gate por `estado` en initAuth/handleLogin | El flujo de aprobación es la premisa del modelo B2B y hoy no existe. 2 líneas. |
+| C1 | ~~Grants de columna en `perfiles` (SQL)~~ | ✅ Resuelto 20 jul 2026. |
+| C2 | ~~Gate por `estado` en initAuth/handleLogin~~ | ✅ Resuelto 20 jul 2026. |
 | A1 | ~~Helper `esc()` en admin.js~~ | ✅ Resuelto 21 jul 2026. |
-| A2 | `promoId` en la identidad del carrito | Cobra precio lleno en pedidos que el cliente cree promocionales — riesgo comercial directo. |
+| A2 | ~~`promoId` en la identidad del carrito~~ | ✅ Resuelto 21 jul 2026. |
 | M3 | Limpiar localStorage en logout | 4 líneas, y es un leak de datos personales en el caso de uso típico B2B. |
 
 ### Puede esperar (agendar, no ignorar)
 | # | Qué | Por qué puede esperar |
 |---|-----|----------------------|
 | A3 | Validar empresa_id en INSERT (perfiles/comercios) | Impacto nulo con una sola empresa activa; el diseño depende de cómo se gestione el alta multi-tenant, aún no definido. |
-| M1 | Unificar contadores en refreshCardStates | Requiere tocar lo mismo que A2 — hacerlo en la misma pasada de carrito, pero después. |
+| M1 | ~~Unificar contadores en refreshCardStates~~ | ✅ Resuelto 21 jul 2026, junto con A2. |
 | M2 | Regla de total para productos sin pcom | Necesita decisión de negocio primero; el dato del detalle es correcto. |
 | M4 | Guard de idempotencia en init | Solo se manifiesta ante re-init completo, que hoy no ocurre en flujos reales. |
 | B1-B6 | Lote de limpieza | Bajo impacto individual; agrupar en una sesión de mantenimiento. |
@@ -287,22 +300,19 @@ e `initCarousel` idempotentes (o `clearInterval` del intervalo previo).
 
 ## 3. Discrepancias con CLAUDE.md
 
-- **D1. Valores de `perfiles.estado`:** CLAUDE.md documenta `'pendiente' o 'aprobado'`
-  (tabla perfiles), pero el código usa `'activo'` en todo el panel admin (`aprobarUsuario`
-  setea `estado: 'activo'`, la RPC se llama `get_perfiles_activos`). Actualizar la tabla
-  del schema — y es el valor a usar en el fix de C2.
-- **D2. Rol `pending`:** CLAUDE.md describe "autenticado pero esperando aprobación del
-  admin" — el código no implementa ese gate (hallazgo C2). Cuando se fixee C2, la doc
-  queda correcta; mientras tanto documenta un comportamiento inexistente.
-- **D3. Contradicción interna sobre el carrusel:** la sección "UI / Rediseño" dice
-  "Carrusel dinámico… Visible solo para authenticated", pero la sección posterior
-  "Carrusel diferenciado por rol" (correcta) dice que guest también lo ve con su slide
-  propio. Borrar la frase vieja.
-- ~~**D4. Tipos de `pedidos.empresa_id`/`vendedor_id`**~~ — **RESUELTO 21 jul 2026:**
-  verificado contra `information_schema` — `empresa_id`, `vendedor_id`, `id` y
-  `perfil_id` son todos `uuid`. La corrección ya está aplicada en Supabase. Falta
-  reflejarlo en la tabla del schema de CLAUDE.md y limpiar la sección "Inconsistencias
-  conocidas" y el ítem de "Pendientes" (tarea de documentación, no de código).
+- ~~**D1. Valores de `perfiles.estado`**~~ — **RESUELTO.** La tabla de schema en
+  CLAUDE.md ya documenta `'pendiente' o 'activo'`, alineado con el código
+  (`aprobarUsuario` setea `'activo'`, RPC `get_perfiles_activos`).
+- ~~**D2. Rol `pending`**~~ — **RESUELTO junto con C2.** CLAUDE.md ahora documenta el
+  gate real (`perfil.estado !== 'activo'`) en la sección "Roles de usuario", que
+  coincide con lo implementado en `auth.js`.
+- ~~**D3. Contradicción interna sobre el carrusel**~~ — **RESUELTO.** La frase "Visible
+  solo para authenticated" se sacó de la sección "UI / Rediseño"; ahora remite a
+  "Carrusel diferenciado por rol" para el comportamiento real de guest.
+- ~~**D4. Tipos de `pedidos.empresa_id`/`vendedor_id`**~~ — **RESUELTO 21 jul 2026.**
+  Verificado contra `information_schema` — `empresa_id`, `vendedor_id`, `id` y
+  `perfil_id` son todos `uuid`. La tabla del schema, "Inconsistencias conocidas" y
+  "Pendientes" en CLAUDE.md ya reflejan la corrección.
 
 ---
 
@@ -361,8 +371,8 @@ GRANT UPDATE (nombre_comercial, rut, direccion, horario_recepcion) ON comercios 
 -- policy RLS con WITH CHECK.
 ```
 
-Verificación post-SQL (pendiente de prueba funcional end-to-end):
-- Con un usuario común, desde consola: `update({rol:'admin'})` → debe dar error de permisos.
-- Registro de usuario nuevo → debe seguir funcionando (INSERT con las columnas permitidas).
-- Editar nombre/teléfono desde el panel de perfil de la app → debe seguir funcionando.
-- Editar comercio desde el panel de perfil → debe seguir funcionando.
+Verificación post-SQL — **completada 21 jul 2026** (ver blockquotes de C1/C2 arriba):
+- Con un usuario común, desde consola: `update({rol:'admin'})` → 403 permission denied. ✅
+- Registro de usuario nuevo → funciona con las columnas permitidas. ✅
+- Editar nombre/teléfono desde el panel de perfil de la app → funciona. ✅
+- Editar comercio desde el panel de perfil → funciona. ✅
