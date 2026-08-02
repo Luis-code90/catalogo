@@ -493,3 +493,7 @@ Pendientes (baja prioridad):
 - Revisar diff antes de aceptar cambios
 - Deploy via Netlify (hacer commits en lotes para conservar build credits)
 - Validación final siempre en catalogs.uy/mirlosas
+- `roadmap.md` (raíz del repo) documenta fases, prioridades y qué falta a nivel
+  producto — este archivo (CLAUDE.md) documenta el estado técnico actual
+  (arquitectura, bugs resueltos, schema). Actualizar ambos al cierre de sesión:
+  bugs/features nuevas acá, checkboxes de fase allá.
