@@ -1,14 +1,14 @@
 import {
   getCART, getClientName, getClientBusiness, getClientAddress,
   getPendingSend, setPendingSend, getWhatsappPhone, getSelectedVendor,
-  getIsExistingClient, setIsExistingClient,
+  getIsExistingClient,
   getCurrentPerfil, setClientName, setClientBusiness, setClientAddress,
   getVendors, setSelectedVendor, getEmpresaId
 } from './state.js';
 import { getPriceFunda, clearCart } from './cart.js';
 import { fmt } from './ui.js';
 import { insertPedido } from './supabase.js';
-import { showStep } from './client.js';
+import { setClientType } from './client.js';
 
 export function getCartMessage() {
   const CART = getCART();
@@ -137,8 +137,7 @@ export function sendToWhatsApp() {
   if (comercio?.direccion) setClientAddress(comercio.direccion);
 
   setPendingSend(true);
-  setIsExistingClient(true);
-  showStep('2A');
+  setClientType(true);
   document.getElementById('clientOverlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
