@@ -23,7 +23,7 @@ export function openModal(p) {
 
   document.getElementById('mCat').textContent  = CAT[p.cat];
   document.getElementById('mName').textContent = p.brand + ' — ' + p.name;
-  document.getElementById('mBar').textContent  = 'Cód. barra: ' + p.barcode;
+  document.getElementById('mBar').textContent  = p.barcode ? ('Cód. barra: ' + p.barcode) : '';
   document.getElementById('mSize').textContent  = p.size;
   if (p.cat === 'cerveza') {
     const esLitro = p.size && p.size.includes('1000');
