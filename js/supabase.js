@@ -326,11 +326,13 @@ export async function insertPedido(pedido, detalles) {
   return data;
 }
 
-export async function fetchPedidosUsuario() {
+export async function fetchPedidosUsuario(empresaId) {
   const { data, error } = await supabase
     .from('pedidos')
     .select('*, pedido_detalle(*, productos(id, name, brand, cat))')
-    .order('created_at', { ascending: false });
+    .eq('empresa_id', empresaId)
+    .order('created_at', { ascending: false })
+    .limit(50);
   if (error) throw new Error(error.message);
   return data || [];
 }

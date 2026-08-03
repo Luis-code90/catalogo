@@ -1,5 +1,6 @@
 import { fmt } from './ui.js';
 import { fetchPedidosUsuario } from './supabase.js';
+import { getEmpresaId } from './state.js';
 
 const MONTHS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 
@@ -35,7 +36,7 @@ export async function openOrderHistory() {
   document.body.style.overflow = 'hidden';
 
   try {
-    const pedidos = await fetchPedidosUsuario();
+    const pedidos = await fetchPedidosUsuario(getEmpresaId());
 
     if (pedidos.length === 0) {
       list.innerHTML = '<div class="history-empty">No hay pedidos anteriores.</div>';
