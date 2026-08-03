@@ -12,6 +12,8 @@ import { clearCart, addToCart, removeFromCart } from './cart.js';
 import { updateUIForRole, renderPromos, fmt } from './ui.js';
 import { openProfile, closeProfile, closeProfileBg, saveProfile } from './profile.js';
 
+let initialized = false;
+
 // ── PRODUCT LOADING ──────────────────────────────────────
 async function loadProducts() {
   try {
@@ -58,11 +60,15 @@ function showLoadError() {
 function openAuth() { showAuthOverlay(); }
 
 // ── PROMO CAROUSEL ───────────────────────────────────────
+let carouselIntervalId = null;
+
 function initCarousel() {
   const promociones = getPromociones();
   const productos = getProducts();
   const carousel = document.getElementById('promoCarousel');
   if (!carousel) return;
+
+  if (carouselIntervalId) { clearInterval(carouselIntervalId); carouselIntervalId = null; }
 
   const role = getUserRole();
 
@@ -108,7 +114,7 @@ function initCarousel() {
     dot.addEventListener('click', () => goToSlide(parseInt(dot.dataset.slide)));
   });
 
-  setInterval(() => goToSlide(current + 1), 4000);
+  carouselIntervalId = setInterval(() => goToSlide(current + 1), 4000);
 
   const track = document.getElementById('pcTrack');
   let startX = 0;
@@ -429,8 +435,10 @@ function setupEventListeners() {
 // ── INIT ─────────────────────────────────────────────────
 async function init() {
   const isRecovery = window.location.hash.includes('type=recovery');
+  const firstRun = !initialized;
+  initialized = true;
 
-  listenForRecovery();
+  if (firstRun) listenForRecovery();
   document.body.style.overflow = 'hidden';
   document.getElementById('ageOverlay').style.display = 'none';
   document.getElementById('loadingState').classList.add('show');
@@ -463,7 +471,7 @@ async function init() {
   updateCartUI();
   filter();
   initCalculadora();
-  setupEventListeners();
+  if (firstRun) setupEventListeners();
 
   if (isRecovery) {
     showSetNewPassword();
