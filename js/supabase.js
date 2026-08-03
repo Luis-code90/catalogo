@@ -11,11 +11,23 @@ function clearSessionCache(prefix) {
     .forEach(k => sessionStorage.removeItem(k));
 }
 
+function getCached(key) {
+  const raw = sessionStorage.getItem(key);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    console.warn(`Caché corrupta para ${key}, se descarta:`, e);
+    sessionStorage.removeItem(key);
+    return null;
+  }
+}
+
 // ── EMPRESA ──────────────────────────────────────────────
 export async function fetchEmpresa(slug) {
   const key = `mirlo_empresa_${slug}`;
-  const cached = sessionStorage.getItem(key);
-  if (cached) return JSON.parse(cached);
+  const cached = getCached(key);
+  if (cached) return cached;
 
   const { data, error } = await supabase
     .from('empresas')
@@ -30,8 +42,8 @@ export async function fetchEmpresa(slug) {
 // ── PRODUCTOS ─────────────────────────────────────────────
 export async function fetchProductos(empresaId) {
   const key = `mirlo_productos_${empresaId}`;
-  const cached = sessionStorage.getItem(key);
-  if (cached) return JSON.parse(cached);
+  const cached = getCached(key);
+  if (cached) return cached;
 
   const { data, error } = await supabase
     .from('productos')
@@ -49,8 +61,8 @@ export async function fetchProductos(empresaId) {
 // ── VENDEDORES ────────────────────────────────────────────
 export async function fetchVendedores(empresaId) {
   const key = `mirlo_vendedores_${empresaId}`;
-  const cached = sessionStorage.getItem(key);
-  if (cached) return JSON.parse(cached);
+  const cached = getCached(key);
+  if (cached) return cached;
 
   const { data, error } = await supabase
     .from('vendedores')
@@ -65,8 +77,8 @@ export async function fetchVendedores(empresaId) {
 // ── PROMOCIONES ───────────────────────────────────────────
 export async function fetchPromociones(empresaId) {
   const key = `mirlo_promociones_${empresaId}`;
-  const cached = sessionStorage.getItem(key);
-  if (cached) return JSON.parse(cached);
+  const cached = getCached(key);
+  if (cached) return cached;
 
   const { data, error } = await supabase
     .from('promociones')
@@ -279,8 +291,8 @@ export async function upsertPromocion(promo) {
 
 export async function fetchProductosAdmin(empresaId) {
   const key = `mirlo_productos_admin_${empresaId}`;
-  const cached = sessionStorage.getItem(key);
-  if (cached) return JSON.parse(cached);
+  const cached = getCached(key);
+  if (cached) return cached;
 
   const { data, error } = await supabase
     .from('productos')
