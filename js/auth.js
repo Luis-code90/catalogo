@@ -4,7 +4,7 @@ import {
   createPerfil, createComercio, createVendedorAsignado,
   fetchEmpresa, resetPassword, onAuthStateChange, updatePassword
 } from './supabase.js';
-import { setIsAdult, setCurrentUser, setCurrentPerfil, setUserRole, getVendors } from './state.js';
+import { setIsAdult, setCurrentUser, setCurrentPerfil, setUserRole, getVendors, setClientName, setClientBusiness, setClientAddress, setSelectedVendor } from './state.js';
 import { filter } from './filters.js';
 import { hideAlcohol } from './filters.js';
 import { updateHeaderUI, updateUIForRole } from './ui.js';
@@ -300,6 +300,10 @@ export async function handleLogout() {
   setCurrentUser(null);
   setCurrentPerfil(null);
   setUserRole('guest');
+  setClientName('');
+  setClientBusiness('');
+  setClientAddress('');
+  setSelectedVendor(null);
   updateHeaderUI();
   updateUIForRole('guest', null);
   filter();
