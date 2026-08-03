@@ -10,6 +10,11 @@ Se identificaron dos hallazgos críticos de control de acceso — (1) la
 superficie de escalada de privilegios vía UPDATE directo a `perfiles`, y
 (2) el gate de aprobación de admin que no bloqueaba a nadie — **ambos
 resueltos y verificados en producción al 21/07/2026** (ver C1 y C2 abajo).
+De los 15 hallazgos totales, **13 están resueltos**; quedan dos parqueados a
+propósito hasta tener más contexto: A3 (contaminación cross-tenant en
+registro, severidad baja, depende del diseño de alta multi-tenant) y M2
+(regla de total con productos sin `pcom`, depende de una decisión de negocio)
+— ver sección 2.
 
 ---
 
@@ -242,6 +247,11 @@ comercio y dirección del anterior como pre-relleno del flujo de WhatsApp.
 **Fix sugerido:** 4 `localStorage.removeItem` en `handleLogout` + resetear las variables
 del state.
 
+> **RESUELTO — rama `fix/limpieza-tecnica-fase0`.** `handleLogout()` limpia
+> `mirlo_client_name/business/address` y `mirlo_vendor` reusando los setters de
+> `state.js` (ya escriben a localStorage). Extendido en B6 al evento `SIGNED_OUT`
+> también, no solo al logout manual.
+
 #### M4. `init()` re-ejecutable duplica listeners e intervalos
 **Dónde:** `js/app.js:497` (`window.init`), `js/app.js:111` (setInterval del carrusel),
 `setupEventListeners` (sin guard).
@@ -255,24 +265,38 @@ limpia, rotación doble). Frágil ante cualquier refactor futuro del arranque.
 **Fix sugerido:** flag módulo-level `let initialized = false` que haga `setupEventListeners`
 e `initCarousel` idempotentes (o `clearInterval` del intervalo previo).
 
+> **RESUELTO — rama `fix/limpieza-tecnica-fase0`.** `firstRun` capturado al
+> principio de `init()` (antes de cualquier `await`, sin ventana de carrera)
+> cubre `setupEventListeners()` **y** `listenForRecovery()` — este último no
+> estaba en el hallazgo original, pero es el mismo mecanismo: sin guardarlo
+> también, cada "Reintentar" registraría otro listener de `onAuthStateChange`
+> sin dar de baja el anterior (relevante ahora que B6 conecta `SIGNED_OUT` ahí).
+> `carouselIntervalId` limpia el intervalo previo en cada `initCarousel()`.
+
 ### 🟢 BAJO
 
-- **B1.** Calculadora muestra `$ NaN` si el producto no tiene `pcom` (destilados):
-  `app.js:230` opera sobre null y `fmt` (ui.js:4-7) solo guarda null/undefined, no NaN.
-- **B2.** `fetchPedidosUsuario` (supabase.js:336+) sin `limit` ni filtro de empresa: el
-  historial crece sin paginación; en un futuro multi-empresa mezclaría pedidos de
-  distintos catálogos del mismo usuario.
-- **B3.** Los `JSON.parse` de caché sessionStorage (supabase.js:18,34,53,69) no tienen
-  try/catch: un valor corrupto rompe el arranque hasta cerrar la pestaña. `loadCart`
-  (storage.js) sí lo maneja bien — replicar ese patrón.
-- **B4.** Código muerto: `populateRegisterVendors` (auth.js:156-162) referencia
-  `#registerVendor` que ya no existe en el HTML; `openPromo` (app.js:293) ya no la llama
-  nadie. `calcularEdad` se mantiene por decisión documentada en CLAUDE.md.
-- **B5.** Modal muestra "Cód. barra: null" si `barcode` es null (modal.js:26) — cosmético,
-  visible en productos con barcode pendiente.
-- **B6.** Sin manejo de expiración de sesión: `onAuthStateChange` (auth.js:107-113) solo
-  escucha `PASSWORD_RECOVERY`. Un token vencido deja la UI en "authenticated" con las
-  queries fallando en silencio. Escuchar `SIGNED_OUT`/`TOKEN_REFRESHED` y degradar a guest.
+- **B1.** ~~Calculadora muestra `$ NaN` si el producto no tiene `pcom`~~ —
+  **RESUELTO, con corrección:** verificado que `pcom: null` no produce `NaN`
+  (`null * n` da `0` en JS) sino `$ 0,00` engañoso — mismo patrón que ya se
+  había arreglado en `mPCom` (modal.js). `calcUpdate()` ahora muestra "—" y
+  "Sin precio comercial" en vez de calcular con un precio inexistente.
+- **B2.** ~~`fetchPedidosUsuario` sin `limit` ni filtro de empresa~~ —
+  **RESUELTO.** Agregado `.eq('empresa_id', empresaId)` (mismo patrón que
+  `fetchProductos`/`fetchVendedores`) y `.limit(50)`.
+- **B3.** ~~Los `JSON.parse` de caché sessionStorage no tienen try/catch~~ —
+  **RESUELTO.** Helper `getCached()` compartido en `supabase.js`, mismo patrón
+  que ya usaba `loadCart` (storage.js). Aplicado también a `fetchProductosAdmin`
+  (5º punto encontrado, no estaba en el hallazgo original).
+- **B4.** ~~Código muerto: `populateRegisterVendors`, `openPromo`~~ —
+  **RESUELTO.** Ambos eliminados junto con su único caller/referencia.
+  `calcularEdad` se mantiene por decisión documentada en CLAUDE.md (no era
+  código muerto, sino intencional).
+- **B5.** ~~Modal muestra "Cód. barra: null" si `barcode` es null~~ —
+  **RESUELTO.** `modal.js` ahora muestra el campo vacío en vez del string literal.
+- **B6.** ~~Sin manejo de expiración de sesión~~ — **RESUELTO.** `onAuthStateChange`
+  ahora también escucha `SIGNED_OUT` (no se agregó `TOKEN_REFRESHED` — ese evento
+  indica refresh exitoso, no expiración; degradar ahí sería incorrecto) y llama
+  `resetToGuest()`, la misma función extraída de `handleLogout()` en M3.
 
 ---
 
@@ -285,16 +309,16 @@ e `initCarousel` idempotentes (o `clearInterval` del intervalo previo).
 | C2 | ~~Gate por `estado` en initAuth/handleLogin~~ | ✅ Resuelto 20 jul 2026. |
 | A1 | ~~Helper `esc()` en admin.js~~ | ✅ Resuelto 21 jul 2026. |
 | A2 | ~~`promoId` en la identidad del carrito~~ | ✅ Resuelto 21 jul 2026. |
-| M3 | Limpiar localStorage en logout | 4 líneas, y es un leak de datos personales en el caso de uso típico B2B. |
+| M3 | ~~Limpiar localStorage en logout~~ | ✅ Resuelto — rama `fix/limpieza-tecnica-fase0`. |
 
 ### Puede esperar (agendar, no ignorar)
 | # | Qué | Por qué puede esperar |
 |---|-----|----------------------|
-| A3 | Validar empresa_id en INSERT (perfiles/comercios) | Impacto nulo con una sola empresa activa; el diseño depende de cómo se gestione el alta multi-tenant, aún no definido. |
+| A3 | Validar empresa_id en INSERT (perfiles/comercios) | Impacto nulo con una sola empresa activa; el diseño depende de cómo se gestione el alta multi-tenant, aún no definido. Único ítem sin resolver de esta lista. |
 | M1 | ~~Unificar contadores en refreshCardStates~~ | ✅ Resuelto 21 jul 2026, junto con A2. |
 | M2 | Regla de total para productos sin pcom | Necesita decisión de negocio primero; el dato del detalle es correcto. |
-| M4 | Guard de idempotencia en init | Solo se manifiesta ante re-init completo, que hoy no ocurre en flujos reales. |
-| B1-B6 | Lote de limpieza | Bajo impacto individual; agrupar en una sesión de mantenimiento. |
+| M4 | ~~Guard de idempotencia en init~~ | ✅ Resuelto — rama `fix/limpieza-tecnica-fase0`. |
+| B1-B6 | ~~Lote de limpieza~~ | ✅ Resuelto — rama `fix/limpieza-tecnica-fase0` (los 6 ítems). |
 
 ---
 
