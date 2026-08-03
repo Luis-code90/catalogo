@@ -229,6 +229,14 @@ window.calcUpdate = function() {
   const producto = getProducts().find(p => p.id === productoId);
   if (!producto) return;
 
+  if (producto.pcom == null) {
+    document.getElementById('calcUnitario').textContent = '—';
+    document.getElementById('calcFunda').textContent = 'Sin precio comercial';
+    document.getElementById('calcAhorro').textContent = '—';
+    resultEl.style.display = 'block';
+    return;
+  }
+
   const promo = comboId ? getPromociones().find(p => p.id === comboId) : null;
   const descCombo = promo ? promo.descuento_pct / 100 : 0;
   const units = promo ? promo.drop_cantidad : producto.units;
