@@ -106,10 +106,25 @@ export async function handleForgotPassword() {
   btn.disabled = false;
 }
 
+function resetToGuest() {
+  setCurrentUser(null);
+  setCurrentPerfil(null);
+  setUserRole('guest');
+  setClientName('');
+  setClientBusiness('');
+  setClientAddress('');
+  setSelectedVendor(null);
+  updateHeaderUI();
+  updateUIForRole('guest', null);
+  filter();
+}
+
 export function listenForRecovery() {
   onAuthStateChange((event) => {
     if (event === 'PASSWORD_RECOVERY') {
       showSetNewPassword();
+    } else if (event === 'SIGNED_OUT') {
+      resetToGuest();
     }
   });
 }
@@ -297,16 +312,6 @@ export function continueAsGuest() {
 
 export async function handleLogout() {
   await logoutUser();
-  setCurrentUser(null);
-  setCurrentPerfil(null);
-  setUserRole('guest');
-  setClientName('');
-  setClientBusiness('');
-  setClientAddress('');
-  setSelectedVendor(null);
-  updateHeaderUI();
-  updateUIForRole('guest', null);
-  filter();
   const loginEmail = document.getElementById('loginEmail');
   const loginPassword = document.getElementById('loginPassword');
   if (loginEmail) loginEmail.value = '';
