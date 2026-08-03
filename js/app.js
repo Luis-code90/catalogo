@@ -304,21 +304,6 @@ function confirmAge(adult) {
 }
 
 // ── PROMO MODAL ──────────────────────────────────────────
-function openPromo() {
-  const productos = getProducts();
-  const nuevos = productos.filter(p => p.es_nuevo);
-  const thumbsEl = document.getElementById('pbnThumbs');
-  if (thumbsEl) {
-    thumbsEl.innerHTML = nuevos.slice(0, 5).map(p =>
-      p.img
-        ? `<img class="pbn-thumb" src="${p.img}" alt="${p.name}">`
-        : `<div class="pbn-thumb-fallback">🆕</div>`
-    ).join('');
-  }
-  document.getElementById('promoOverlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-
 function closePromo() {
   document.getElementById('promoOverlay').classList.remove('open');
   document.body.style.overflow = '';

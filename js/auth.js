@@ -4,7 +4,7 @@ import {
   createPerfil, createComercio, createVendedorAsignado,
   fetchEmpresa, resetPassword, onAuthStateChange, updatePassword
 } from './supabase.js';
-import { setIsAdult, setCurrentUser, setCurrentPerfil, setUserRole, getVendors, setClientName, setClientBusiness, setClientAddress, setSelectedVendor } from './state.js';
+import { setIsAdult, setCurrentUser, setCurrentPerfil, setUserRole, setClientName, setClientBusiness, setClientAddress, setSelectedVendor } from './state.js';
 import { filter } from './filters.js';
 import { hideAlcohol } from './filters.js';
 import { updateHeaderUI, updateUIForRole } from './ui.js';
@@ -167,15 +167,6 @@ export function showAuthRegister() {
   document.getElementById('authLogin').style.display = 'none';
   document.getElementById('authRegister').style.display = 'block';
   document.getElementById('authPending').style.display = 'none';
-  populateRegisterVendors();
-}
-
-function populateRegisterVendors() {
-  const select = document.getElementById('registerVendor');
-  const vendors = getVendors();
-  if (!select || !vendors.length) return;
-  select.innerHTML = `<option value="">— Seleccioná tu vendedor (opcional) —</option>` +
-    vendors.map(v => `<option value="${v.id}">${v.name}</option>`).join('');
 }
 
 export function showAuthPending() {
