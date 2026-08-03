@@ -5,7 +5,7 @@ import {
   getPendingSend, setPendingSend,
   getSelectedVendor, setSelectedVendor,
   getIsExistingClient, setIsExistingClient,
-  getVendors
+  getVendors, getCurrentPerfil
 } from './state.js';
 import { doSendToWhatsApp } from './whatsapp.js';
 
@@ -23,10 +23,34 @@ export function updateClientInfoLine() {
 }
 
 export function openClientModal() {
-  const name = getClientName();
-  const business = getClientBusiness();
-  const address = getClientAddress();
-  const vendor = getSelectedVendor();
+  let name = getClientName();
+  let business = getClientBusiness();
+  let address = getClientAddress();
+  let vendor = getSelectedVendor();
+
+  // Fallback al perfil real de Supabase si state/localStorage están vacíos
+  // (ej. sesión nueva tras logout) — mismo patrón que sendToWhatsApp().
+  if (!(name && business && address && vendor)) {
+    const perfil = getCurrentPerfil();
+    const comercio = perfil?.comercios;
+    const vendedorAsignado = perfil?.vendedores_asignados?.[0];
+    const vendedorDelPerfil = vendedorAsignado
+      ? getVendors().find(v => v.id === vendedorAsignado.vendedor_id)
+      : null;
+    const vendedorOk = vendor || vendedorDelPerfil;
+
+    if (perfil?.nombre && comercio?.nombre_comercial && comercio?.direccion && vendedorOk) {
+      setClientName(perfil.nombre);
+      setClientBusiness(comercio.nombre_comercial);
+      setClientAddress(comercio.direccion);
+      if (!vendor && vendedorDelPerfil) setSelectedVendor(vendedorDelPerfil);
+
+      name = perfil.nombre;
+      business = comercio.nombre_comercial;
+      address = comercio.direccion;
+      vendor = vendedorOk;
+    }
+  }
 
   if (name && business && address && vendor) {
     showSummary();
