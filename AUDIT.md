@@ -33,7 +33,11 @@ en la sección 6.
 > sin autenticación (**C3**, crítico, pendiente — SQL en la sección 8), y habilita un
 > XSS almacenado encadenado contra todos los usuarios (**A5**). En la misma pasada se
 > confirmó que los precios comerciales son legibles públicamente (**A6**).
-> **C3 es el ítem más urgente del documento.**
+>
+> ✅ **C3 resuelto y verificado en producción el mismo día** (SQL de la sección 8):
+> los ataques que funcionaban ahora devuelven "Acceso denegado". Con C3 cerrado, **A5
+> pasa a ser el ítem abierto de mayor prioridad** — ya no es explotable por anónimos,
+> pero sigue siendo la defensa que falta si un dato de la base llega a contener HTML.
 
 ---
 
@@ -186,8 +190,18 @@ END IF;
 SQL completo de las 7 funciones + `REVOKE EXECUTE ... FROM anon` como defensa en
 profundidad: **sección 8**.
 
-**Estado:** pendiente de ejecutar — requiere acceso de escritura a Supabase que esta
-sesión no tiene.
+> **RESUELTO Y VERIFICADO EN PRODUCCIÓN — 06/09/2026.** SQL de la sección 8 ejecutado
+> por el usuario. Las 7 funciones usan ahora el guard `NOT EXISTS`, conservando
+> `SET search_path TO 'public'`. Re-ejecutados sin sesión los mismos ataques que
+> comprobaron el agujero: `get_perfiles_activos`, `get_perfiles_pendientes`,
+> `toggle_promocion` y `update_perfil_admin` devuelven todas
+> `{"code":"P0001","message":"Acceso denegado"}` (HTTP 400). Ya no hay fuga de PII ni
+> escalada de privilegios sin autenticación.
+>
+> Queda pendiente, con prioridad baja, la capa de defensa en profundidad: el bloque
+> `REVOKE` original apuntaba a `anon` y fue un no-op (el grant real es a `PUBLIC`).
+> Bloque corregido en la **sección 8b** — reduce superficie, no cierra ninguna
+> vulnerabilidad abierta.
 
 ### 🟠 ALTO
 
@@ -518,7 +532,7 @@ e `initCarousel` idempotentes (o `clearInterval` del intervalo previo).
 | A1 | ~~Helper `esc()` en admin.js~~ | ✅ Resuelto 21 jul 2026. |
 | A2 | ~~`promoId` en la identidad del carrito~~ | ✅ Resuelto 21 jul 2026. |
 | M3 | ~~Limpiar localStorage en logout~~ | ✅ Resuelto — rama `fix/limpieza-tecnica-fase0`. |
-| **C3** | **Guard NULL-safe en las 7 RPCs (SQL, sección 8)** | 🔴 **URGENTE — escalada de privilegios sin autenticación, explotable hoy en producción. Bloqueante absoluto antes de las pruebas con vendedores.** |
+| C3 | ~~Guard NULL-safe en las 7 RPCs (SQL, sección 8)~~ | ✅ Resuelto y verificado en producción 06/09/2026. Pendiente menor: `REVOKE ... FROM PUBLIC` (sección 8b), solo defensa en profundidad. |
 | A5 | Aplicar `esc()` en ui.js y cart.js | Crítico mientras C3 esté abierto (XSS almacenado contra todos los usuarios, admins incluidos). Cambio de código, no de SQL. |
 
 ### Puede esperar (agendar, no ignorar)
@@ -885,17 +899,61 @@ END;
 $function$;
 
 -- ── Defensa en profundidad: ninguna de estas RPCs necesita ser llamable sin sesión ──
-REVOKE EXECUTE ON FUNCTION public.get_perfiles_activos(uuid) FROM anon;
-REVOKE EXECUTE ON FUNCTION public.get_perfiles_pendientes(uuid) FROM anon;
-REVOKE EXECUTE ON FUNCTION public.update_perfil_admin(uuid, text, text, text) FROM anon;
-REVOKE EXECUTE ON FUNCTION public.toggle_promocion(integer, boolean) FROM anon;
-REVOKE EXECUTE ON FUNCTION public.delete_promocion(integer) FROM anon;
-REVOKE EXECUTE ON FUNCTION public.update_precio_producto(integer, numeric, numeric) FROM anon;
-REVOKE EXECUTE ON FUNCTION public.upsert_promocion(integer, uuid, integer, text, text, text, numeric, text, integer, text, date, date, boolean) FROM anon;
-REVOKE EXECUTE ON FUNCTION public.crear_pedido(uuid, text, numeric, uuid, text, jsonb) FROM anon;
+-- ⚠️ ESTE BLOQUE ESTABA MAL Y NO HIZO NADA. Ver el bloque corregido más abajo.
+-- REVOKE EXECUTE ON FUNCTION public.get_perfiles_activos(uuid) FROM anon;   -- no-op
+-- (idem para las otras 7 — `anon` nunca tuvo grant directo, hereda de PUBLIC)
 ```
 
+### 8b. Corrección del bloque REVOKE — pendiente de ejecutar
+
+**Ejecutado el 06/09/2026: el bloque de arriba funcionó, pero solo a medias.** El guard
+NULL-safe quedó correctamente aplicado y verificado (ver "Resultado" más abajo). El
+`REVOKE ... FROM anon`, en cambio, **no revocó nada**: fue un no-op silencioso.
+
+Motivo: Postgres otorga `EXECUTE` a `PUBLIC` por defecto al crear una función, y `anon`
+nunca tuvo un grant *directo* — lo hereda de `PUBLIC`. Revocarle a `anon` algo que nunca
+se le concedió directamente no tiene efecto. El ACL real lo muestra
+(`select proacl from pg_proc`), donde el grantee vacío del primer ítem es `PUBLIC`:
+
+```
+=X/postgres | postgres=X/postgres | authenticated=X/postgres | service_role=X/postgres
+ ↑ esto es PUBLIC, y anon es miembro de PUBLIC
+```
+
+La forma correcta es revocar a `PUBLIC`. Es seguro: `authenticated` y `service_role`
+tienen grants **explícitos** propios, así que revocarle a `PUBLIC` no le saca el acceso
+a los admins (que siempre son `authenticated`) ni rompe `crear_pedido` para los clientes
+logueados.
+
+```sql
+REVOKE EXECUTE ON FUNCTION public.get_perfiles_activos(uuid) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.get_perfiles_pendientes(uuid) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.update_perfil_admin(uuid, text, text, text) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.toggle_promocion(integer, boolean) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.delete_promocion(integer) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.update_precio_producto(integer, numeric, numeric) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.upsert_promocion(integer, uuid, integer, text, text, text, numeric, text, integer, text, date, date, boolean) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.crear_pedido(uuid, text, numeric, uuid, text, jsonb) FROM PUBLIC;
+```
+
+Tras ejecutarlo, los 8 warnings `anon_security_definer_function_executable` del advisor
+deben desaparecer. Los `authenticated_security_definer_function_executable` van a
+quedar, y está bien: los admins necesitan poder llamarlas.
+
+**Prioridad:** baja/media. El agujero crítico ya está cerrado por el guard; esto es
+reducción de superficie de ataque, no una vulnerabilidad abierta.
+
+**Lección para RPCs futuras:** en Postgres, `REVOKE ... FROM anon` sobre una función es
+casi siempre inútil. Si querés que una función no sea llamable sin sesión, va
+`REVOKE ... FROM PUBLIC` y, si hace falta, `GRANT ... TO authenticated` explícito.
+
 ### Verificación post-SQL
+
+**Resultado de la ejecución del 06/09/2026:** los 4 checks sin sesión devolvieron
+`{"code":"P0001","message":"Acceso denegado"}` con HTTP 400 —
+`get_perfiles_activos`, `get_perfiles_pendientes`, `toggle_promocion` y
+`update_perfil_admin`. Antes del fix, el primero devolvía el dataset completo de
+perfiles y el tercero respondía 204. **C3 cerrado y verificado.**
 
 **1. Sin sesión, la fuga de PII debe estar cerrada.** Desde cualquier terminal
 (reemplazar `<ANON_KEY>` por la anon key pública de `js/supabase.js`):

@@ -441,17 +441,17 @@ Esta tabla de pedidos es la fuente de datos para el futuro dashboard de ventas d
 ## Pendientes
 - fecha_lanzamiento en productos para ordenar y archivar lanzamientos
 - Reemplazar barcodes temporales (TEMP-106 a TEMP-114) por códigos reales
-- 🔴 **BLOQUEANTE URGENTE antes de pruebas con vendedores** (ver AUDIT.md **C3** y
-  sección 8): el chequeo de rol de las 7 RPCs admin **no bloquea a llamadores
-  anónimos**. El patrón `IF (SELECT rol FROM perfiles WHERE id = auth.uid()) != 'admin'`
-  evalúa a NULL cuando no hay sesión (`auth.uid()` es NULL → la subquery no devuelve
-  filas), y plpgsql trata NULL como falso, así que la excepción nunca se lanza.
-  Resultado: cualquiera sin cuenta puede leer todos los perfiles, cambiar precios,
-  borrar promos y asignarse `rol='admin'`. Comprobado explotable en producción el
-  06/09/2026. El fix de A4 corrió ese día pero copió este mismo patrón, así que no
-  cerró nada. **Al escribir cualquier RPC nueva con chequeo de rol, usar siempre
+- ✅ **C3 resuelto 06/09/2026** (ver AUDIT.md): el chequeo de rol de las 7 RPCs admin
+  no bloqueaba a llamadores anónimos. El patrón
+  `IF (SELECT rol FROM perfiles WHERE id = auth.uid()) != 'admin'` evalúa a NULL cuando
+  no hay sesión (`auth.uid()` es NULL → la subquery no devuelve filas), y plpgsql trata
+  NULL como falso, así que la excepción nunca se lanzaba: cualquiera sin cuenta podía
+  leer todos los perfiles, cambiar precios, borrar promos y asignarse `rol='admin'`.
+  **Regla permanente: todo chequeo de rol en una RPC va con
   `IF NOT EXISTS (SELECT 1 FROM perfiles WHERE id = auth.uid() AND rol = 'admin')`,
-  que es NULL-safe.** SQL completo en AUDIT.md sección 8.
+  que es NULL-safe. Nunca con `!=` sobre una subquery escalar.**
+  Pendiente menor asociado: `REVOKE EXECUTE ... FROM PUBLIC` (AUDIT.md sección 8b) —
+  ojo que `REVOKE ... FROM anon` sobre funciones es un no-op, el grant real es a PUBLIC.
 - Aplicar el helper `esc()` de admin.js también en `ui.js` y `cart.js` (AUDIT.md **A5**):
   interpolan datos de la base en `innerHTML` sin escapar. Se habían dejado afuera del
   fix A1 asumiendo que solo los admins escriben esos campos — C3 invalida ese supuesto.
