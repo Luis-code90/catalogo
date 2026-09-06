@@ -330,6 +330,13 @@ initCarousel() en app.js detecta el rol con getUserRole() y muestra el slide cor
 El modal openPromo() ya no se dispara automáticamente al confirmar edad (antes se llamaba
 desde confirmAge() para ambos casos adult/minor).
 
+**Temporal (Fase 0/1 — registro de clientes pausado):** `updateUIForRole()` (js/ui.js)
+oculta `#promoCarousel` completo también para `guest` (antes se mostraba para
+`guest` y `authenticated`; ahora solo para `authenticated`, igual que ya pasaba con
+`pending`). Es para no invitar a "Hazte cliente" con el botón "Registrate →" mientras
+los clientes no pueden crear cuenta. Revertir esa condición en js/ui.js cuando se
+reabra el registro — `.pc-slide-guest` sigue existiendo en el HTML sin cambios.
+
 ## Categorías nuevas: Destilados y Energizante
 Productos que se venden por unidad (units=1), sin selector de funda ni combos.
 CAT y EMOJI en data.js extendidos. Filtros agregados en #catFilters.
