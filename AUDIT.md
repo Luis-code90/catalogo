@@ -24,6 +24,17 @@ hallazgos bajos adicionales (B7, B8) queda listo para ejecutar en la sección 7,
 datos operativos verificados (0 promociones vigentes, sin vendedores reales con cuenta)
 en la sección 6.
 
+> ⚠️ **Segunda pasada, 06/09/2026 (posterior a ejecutar el SQL de la sección 7):** el
+> fix de A4 se aplicó pero **no cerró el agujero**. El chequeo de rol que se agregó
+> —copiado del que ya usaban las otras 6 RPCs admin— no bloquea a los llamadores
+> anónimos por lógica NULL de SQL. Comprobado explotable en producción sin
+> autenticación: se pudieron leer todos los perfiles y las RPCs de escritura
+> respondieron con éxito. Esto convierte a las 7 RPCs en una escalada de privilegios
+> sin autenticación (**C3**, crítico, pendiente — SQL en la sección 8), y habilita un
+> XSS almacenado encadenado contra todos los usuarios (**A5**). En la misma pasada se
+> confirmó que los precios comerciales son legibles públicamente (**A6**).
+> **C3 es el ítem más urgente del documento.**
+
 ---
 
 ## 1. Riesgos por severidad
@@ -117,6 +128,66 @@ Aplicar en ambos puntos: `initAuth` y `handleLogin`.
 > de usuario nuevo → cae correctamente en pantalla "pendiente" pese a tener nombre
 > completo. Aprobación desde el panel admin → login del usuario aprobado → acceso
 > completo a precios, carrito y pedidos.
+
+#### C3. Bypass total del chequeo de admin de las RPCs para usuarios anónimos (lógica NULL)
+**Dónde:** las 7 RPCs `SECURITY DEFINER` que validan rol: `get_perfiles_activos`,
+`get_perfiles_pendientes`, `update_perfil_admin`, `toggle_promocion`,
+`delete_promocion`, `update_precio_producto`, `upsert_promocion`.
+
+Todas usan el mismo guard:
+
+```sql
+IF (SELECT rol FROM perfiles WHERE id = auth.uid()) != 'admin' THEN
+  RAISE EXCEPTION 'Acceso denegado';
+END IF;
+```
+
+El guard **no bloquea a los llamadores anónimos**, por lógica de tres valores de SQL:
+
+| Llamador | `auth.uid()` | Subquery | Comparación | Resultado |
+|---|---|---|---|---|
+| Cliente logueado | su uuid | `'cliente'` | `'cliente' != 'admin'` → TRUE | ✅ Excepción, bloqueado |
+| **Anónimo (sin sesión)** | **NULL** | **sin filas → NULL** | **`NULL != 'admin'` → NULL** | ❌ **plpgsql trata NULL como falso: la excepción NUNCA se lanza y la función sigue** |
+
+Es la inversión más peligrosa posible: bloquea al usuario logueado honesto y deja
+pasar al atacante que ni siquiera se autentica. Como son `SECURITY DEFINER`, se
+ejecutan con permisos del owner, salteando RLS por completo.
+
+**Verificado en producción el 06/09/2026**, sin ninguna sesión, solo con la anon key
+pública (que está en el bundle JS por diseño):
+- `POST /rest/v1/rpc/get_perfiles_activos` con el `empresa_id` real → devolvió el
+  dataset completo de perfiles: email, nombre, apellido, teléfono, estado, rol, canal.
+- `POST /rest/v1/rpc/toggle_promocion` con `p_id = -999999` (id inexistente, para no
+  tocar datos reales) → respondió **HTTP 204 (éxito)**, no "Acceso denegado" —
+  confirma que las RPCs de escritura están igual de expuestas.
+
+**Impacto:** fuga de PII de todos los usuarios; alteración de precios; borrado de
+promociones; y lo más grave, **`update_perfil_admin` permite que cualquiera, sin
+cuenta, se asigne `rol='admin'`** a sí mismo o a cualquier perfil — escalada total
+de privilegios sin autenticación.
+
+`crear_pedido` es la única sana: usa `IF auth.uid() IS NULL THEN RAISE EXCEPTION`,
+que sí es NULL-safe.
+
+**Relación con A4:** el fix de A4 (agregar el chequeo de rol a las dos RPCs que no
+tenían ninguno) se ejecutó el 06/09/2026 y es correcto en intención, pero copió este
+mismo patrón defectuoso — por eso el agujero de PII siguió abierto después del fix.
+A4 queda subsumido en C3.
+
+**Fix:** usar `NOT EXISTS`, que es inmune a NULL por construcción (si `auth.uid()`
+es NULL, ninguna fila matchea, `NOT EXISTS` da TRUE y la excepción se lanza):
+
+```sql
+IF NOT EXISTS (SELECT 1 FROM perfiles WHERE id = auth.uid() AND rol = 'admin') THEN
+  RAISE EXCEPTION 'Acceso denegado';
+END IF;
+```
+
+SQL completo de las 7 funciones + `REVOKE EXECUTE ... FROM anon` como defensa en
+profundidad: **sección 8**.
+
+**Estado:** pendiente de ejecutar — requiere acceso de escritura a Supabase que esta
+sesión no tiene.
 
 ### 🟠 ALTO
 
@@ -241,8 +312,66 @@ es público.
 que ya tienen las otras 6 RPCs, reescribiendo ambas funciones en `plpgsql` con
 `RAISE EXCEPTION 'Acceso denegado'` si el caller no es admin.
 
-**Estado:** confirmado vía Supabase real (solo lectura) el 06/09/2026. Pendiente de
-ejecutar — requiere acceso de escritura que esta sesión no tiene.
+**Estado:** ~~confirmado vía Supabase real (solo lectura) el 06/09/2026~~ —
+**SQL EJECUTADO el 06/09/2026, pero el fix resultó INSUFICIENTE.** Ambas funciones
+ahora tienen el chequeo de rol y `search_path` fijado (verificado con
+`pg_get_functiondef`), pero el chequeo copió el patrón defectuoso que no bloquea a
+llamadores anónimos — la fuga de PII siguió abierta después del fix y se comprobó
+explotable sin autenticación. **Ver C3, que subsume este hallazgo.**
+
+#### A5. XSS almacenado en el catálogo vía datos de promociones (encadenado con C3)
+**Dónde:** `js/ui.js:170` (`${pr.tipo_promo}`), `js/ui.js:176` (`${pr.drop_size}`),
+`js/ui.js:177` (`${pr.canal}`), más `${p.brand}`/`${p.name}` — todos interpolados en
+`innerHTML` dentro de `renderPromos()` sin escapar. Mismo patrón en `js/cart.js:81`.
+
+El fix A1 agregó el helper `esc()` pero solo en `admin.js`; `ui.js` y `cart.js` se
+dejaron explícitamente fuera de alcance con el argumento de que esos campos solo los
+escriben admins, y por lo tanto eran datos confiables.
+
+**C3 invalida ese supuesto.** Mientras `upsert_promocion` sea invocable sin
+autenticación, cualquiera puede escribir strings arbitrarios en `tipo_promo`,
+`drop_size` o `canal`, y ese contenido se ejecuta como JavaScript en la sesión de
+**todos los usuarios que abran el grid de promos, incluidos los admins** — desde ahí
+se puede llamar cualquier RPC con las credenciales de la víctima.
+
+**Severidad:** crítica mientras C3 esté abierto; alta una vez cerrado (queda como
+defensa en profundidad frente a un admin comprometido o a un futuro bug de escritura).
+
+**Fix:** reusar el helper `esc()` de `admin.js:11-12` en `ui.js` y `cart.js` para todo
+dato que venga de la base y entre a un template. Es un cambio de código, no de SQL —
+no está incluido en el SQL de la sección 8.
+
+#### A6. Los precios comerciales (`pcom`) son legibles públicamente sin autenticación
+**Dónde:** policy RLS de `productos` — `SELECT USING (true)` para el rol `public`.
+Mismo caso en `vendedores`, `promociones` y `empresas`.
+
+Todo el modelo del producto es "el invitado ve el catálogo pero no los precios hasta
+que un admin lo apruebe" (ver gate C2). Pero ese gate es **puramente cosmético**:
+`fetchProductos()` hace `select('*')` para todos los roles, así que el navegador del
+invitado descarga los precios completos y simplemente no los pinta. Peor: no hace
+falta ni abrir la web — con la anon key pública alcanza un `curl`:
+
+```
+GET /rest/v1/productos?select=name,brand,pcom,ppub
+→ [{"name":"1,0L con gas","brand":"Nativa","pcom":62.18,"ppub":74}, ...]
+```
+
+Verificado sin autenticación el 06/09/2026. `vendedores` expone igual nombres y
+teléfonos de los cinco vendedores.
+
+**Impacto:** la lista de precios mayoristas B2B es información competitiva sensible;
+hoy cualquiera (incluido un competidor) puede scrapearla completa en un request.
+No es fuga de datos personales de clientes — `perfiles`, `comercios`, `pedidos` y
+`pedido_detalle` sí están correctamente aislados por `auth.uid()` (confirmado: sin
+sesión devuelven `[]`).
+
+**Sin fix inmediato — requiere decisión de diseño + cambio de código.** No alcanza con
+endurecer la policy, porque los invitados tienen que seguir viendo el catálogo sin
+precios. Opciones a evaluar: (a) una vista pública de `productos` sin las columnas
+`pcom`/`ppub` para `anon`, con la tabla completa restringida a perfiles `activo`, y
+`fetchProductos()` eligiendo la fuente según el rol; (b) mover el catálogo público a
+un endpoint propio. Decidir antes de las pruebas con vendedores no es bloqueante,
+pero sí antes de promocionar el catálogo públicamente.
 
 ### 🟡 MEDIO
 
@@ -389,11 +518,14 @@ e `initCarousel` idempotentes (o `clearInterval` del intervalo previo).
 | A1 | ~~Helper `esc()` en admin.js~~ | ✅ Resuelto 21 jul 2026. |
 | A2 | ~~`promoId` en la identidad del carrito~~ | ✅ Resuelto 21 jul 2026. |
 | M3 | ~~Limpiar localStorage en logout~~ | ✅ Resuelto — rama `fix/limpieza-tecnica-fase0`. |
+| **C3** | **Guard NULL-safe en las 7 RPCs (SQL, sección 8)** | 🔴 **URGENTE — escalada de privilegios sin autenticación, explotable hoy en producción. Bloqueante absoluto antes de las pruebas con vendedores.** |
+| A5 | Aplicar `esc()` en ui.js y cart.js | Crítico mientras C3 esté abierto (XSS almacenado contra todos los usuarios, admins incluidos). Cambio de código, no de SQL. |
 
 ### Puede esperar (agendar, no ignorar)
 | # | Qué | Por qué puede esperar |
 |---|-----|----------------------|
-| A3 | Validar empresa_id en INSERT (perfiles/comercios) | Impacto nulo con una sola empresa activa; el diseño depende de cómo se gestione el alta multi-tenant, aún no definido. Único ítem sin resolver de esta lista. |
+| A3 | Validar empresa_id en INSERT (perfiles/comercios) | Impacto nulo con una sola empresa activa; el diseño depende de cómo se gestione el alta multi-tenant, aún no definido. |
+| A6 | Precios comerciales legibles sin autenticación | No es fuga de datos personales y el negocio ya opera así hoy; cerrarlo requiere decisión de diseño más cambio de código (los invitados deben seguir viendo el catálogo sin precios). Resolver antes de promocionar el catálogo públicamente. |
 | M1 | ~~Unificar contadores en refreshCardStates~~ | ✅ Resuelto 21 jul 2026, junto con A2. |
 | M2 | Regla de total para productos sin pcom | Necesita decisión de negocio primero; el dato del detalle es correcto. |
 | M4 | ~~Guard de idempotencia en init~~ | ✅ Resuelto — rama `fix/limpieza-tecnica-fase0`. |
@@ -615,3 +747,178 @@ No-SQL (ver B9) — **riesgo aceptado, no se va a ejecutar**: activar "Prevent u
 leaked passwords" en Authentication → Sign In / Providers → Email requiere plan Pro;
 el proyecto está en plan Free. Mitigación gratuita aplicable en la misma pantalla:
 subir la longitud mínima de contraseña a 8+ y exigir mezcla de caracteres.
+
+**Estado de la sección 7:** el bloque de A4 y el de B7 fueron ejecutados por el
+usuario el 06/09/2026. El de B7 (`search_path`) funcionó — esos 8 warnings ya no
+aparecen en el advisor. El de A4 se aplicó pero resultó insuficiente: ver C3 y la
+sección 8.
+
+---
+
+## 8. SQL listo para ejecutar — fix de C3 (CRÍTICO, urgente)
+
+Reemplaza el guard defectuoso por uno NULL-safe en las 7 funciones afectadas, y
+revoca `EXECUTE` al rol `anon` como defensa en profundidad. Copiar y pegar completo
+en el SQL Editor de Supabase.
+
+Dos detalles importantes de este bloque:
+1. Cada `CREATE OR REPLACE` **incluye `SET search_path TO 'public'`**. Es obligatorio:
+   omitirlo borraría el pin de `search_path` aplicado en el fix de B7.
+2. El `REVOKE` no reemplaza al guard, lo complementa. `anon` es el rol de PostgREST
+   para peticiones sin sesión; los admins siempre son `authenticated`, así que
+   revocarle `EXECUTE` a `anon` no rompe nada. Pero un usuario logueado no-admin
+   sigue siendo `authenticated`, y a ese solo lo frena el guard corregido.
+
+```sql
+-- ── C3: guard NULL-safe en las 7 RPCs ──────────────────────────────────────
+-- NOT EXISTS es inmune a NULL: si auth.uid() es NULL, ninguna fila matchea,
+-- NOT EXISTS da TRUE y la excepción se lanza. El patrón viejo
+-- ((SELECT rol ...) != 'admin') evaluaba a NULL y plpgsql lo tomaba como falso.
+
+CREATE OR REPLACE FUNCTION public.get_perfiles_activos(p_empresa_id uuid)
+ RETURNS SETOF perfiles
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM perfiles WHERE id = auth.uid() AND rol = 'admin') THEN
+    RAISE EXCEPTION 'Acceso denegado';
+  END IF;
+
+  RETURN QUERY
+  SELECT * FROM perfiles
+  WHERE empresa_id = p_empresa_id
+  AND estado = 'activo'
+  ORDER BY created_at DESC;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.get_perfiles_pendientes(p_empresa_id uuid)
+ RETURNS SETOF perfiles
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM perfiles WHERE id = auth.uid() AND rol = 'admin') THEN
+    RAISE EXCEPTION 'Acceso denegado';
+  END IF;
+
+  RETURN QUERY
+  SELECT * FROM perfiles
+  WHERE empresa_id = p_empresa_id
+  AND estado = 'pendiente';
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.update_perfil_admin(p_perfil_id uuid, p_canal text, p_estado text, p_rol text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM perfiles WHERE id = auth.uid() AND rol = 'admin') THEN
+    RAISE EXCEPTION 'Acceso denegado';
+  END IF;
+  UPDATE perfiles SET canal = p_canal, estado = p_estado, rol = p_rol WHERE id = p_perfil_id;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.toggle_promocion(p_id integer, p_activa boolean)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM perfiles WHERE id = auth.uid() AND rol = 'admin') THEN
+    RAISE EXCEPTION 'Acceso denegado';
+  END IF;
+  UPDATE promociones SET activa = p_activa WHERE id = p_id;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.delete_promocion(p_id integer)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM perfiles WHERE id = auth.uid() AND rol = 'admin') THEN
+    RAISE EXCEPTION 'Acceso denegado';
+  END IF;
+  DELETE FROM promociones WHERE id = p_id;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.update_precio_producto(p_id integer, p_pcom numeric, p_ppub numeric)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM perfiles WHERE id = auth.uid() AND rol = 'admin') THEN
+    RAISE EXCEPTION 'Acceso denegado';
+  END IF;
+  UPDATE productos SET pcom = p_pcom, ppub = p_ppub WHERE id = p_id;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.upsert_promocion(p_id integer, p_empresa_id uuid, p_producto_id integer, p_codigo text, p_nombre text, p_tipo_promo text, p_descuento_pct numeric, p_drop_size text, p_drop_cantidad integer, p_canal text, p_fecha_inicio date, p_fecha_fin date, p_activa boolean)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM perfiles WHERE id = auth.uid() AND rol = 'admin') THEN
+    RAISE EXCEPTION 'Acceso denegado';
+  END IF;
+  INSERT INTO promociones (id, empresa_id, producto_id, codigo, nombre, tipo_promo, descuento_pct, drop_size, drop_cantidad, canal, fecha_inicio, fecha_fin, activa)
+  VALUES (COALESCE(p_id, nextval('promociones_id_seq')), p_empresa_id, p_producto_id, p_codigo, p_nombre, p_tipo_promo, p_descuento_pct, p_drop_size, p_drop_cantidad, p_canal, p_fecha_inicio, p_fecha_fin, p_activa)
+  ON CONFLICT (id) DO UPDATE SET producto_id = EXCLUDED.producto_id, codigo = EXCLUDED.codigo, nombre = EXCLUDED.nombre, tipo_promo = EXCLUDED.tipo_promo, descuento_pct = EXCLUDED.descuento_pct, drop_size = EXCLUDED.drop_size, drop_cantidad = EXCLUDED.drop_cantidad, canal = EXCLUDED.canal, fecha_inicio = EXCLUDED.fecha_inicio, fecha_fin = EXCLUDED.fecha_fin, activa = EXCLUDED.activa;
+END;
+$function$;
+
+-- ── Defensa en profundidad: ninguna de estas RPCs necesita ser llamable sin sesión ──
+REVOKE EXECUTE ON FUNCTION public.get_perfiles_activos(uuid) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.get_perfiles_pendientes(uuid) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.update_perfil_admin(uuid, text, text, text) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.toggle_promocion(integer, boolean) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.delete_promocion(integer) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.update_precio_producto(integer, numeric, numeric) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.upsert_promocion(integer, uuid, integer, text, text, text, numeric, text, integer, text, date, date, boolean) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.crear_pedido(uuid, text, numeric, uuid, text, jsonb) FROM anon;
+```
+
+### Verificación post-SQL
+
+**1. Sin sesión, la fuga de PII debe estar cerrada.** Desde cualquier terminal
+(reemplazar `<ANON_KEY>` por la anon key pública de `js/supabase.js`):
+
+```bash
+curl -s -X POST "https://bulvsefhaadhbmwcdncr.supabase.co/rest/v1/rpc/get_perfiles_activos" \
+  -H "apikey: <ANON_KEY>" -H "Content-Type: application/json" \
+  -d '{"p_empresa_id":"9c993e43-e77c-4585-b4c1-25f4440e2fdf"}'
+```
+Antes del fix devolvía la lista completa de perfiles. Después debe devolver un error
+de permisos (`42501` por el REVOKE) — **nunca** datos de perfiles.
+
+**2. Sin sesión, las RPCs de escritura deben rechazar.** Con id inexistente para no
+tocar datos reales:
+
+```bash
+curl -s -w "\n%{http_code}\n" -X POST "https://bulvsefhaadhbmwcdncr.supabase.co/rest/v1/rpc/toggle_promocion" \
+  -H "apikey: <ANON_KEY>" -H "Content-Type: application/json" \
+  -d '{"p_id":-999999,"p_activa":true}'
+```
+Antes del fix devolvía `204`. Después debe devolver error, no `204`.
+
+**3. El panel admin debe seguir funcionando igual.** Entrar a `admin.html` con la
+cuenta admin real y verificar las 4 tabs: usuarios pendientes, usuarios activos
+(deben listar), promociones (activar/desactivar y editar) y precios (guardar un
+precio). Si alguna falla con "Acceso denegado", el guard quedó mal aplicado.
