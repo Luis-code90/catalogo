@@ -34,10 +34,12 @@ en la sección 6.
 > XSS almacenado encadenado contra todos los usuarios (**A5**). En la misma pasada se
 > confirmó que los precios comerciales son legibles públicamente (**A6**).
 >
-> ✅ **C3 resuelto y verificado en producción el mismo día** (SQL de la sección 8):
-> los ataques que funcionaban ahora devuelven "Acceso denegado". Con C3 cerrado, **A5
-> pasa a ser el ítem abierto de mayor prioridad** — ya no es explotable por anónimos,
-> pero sigue siendo la defensa que falta si un dato de la base llega a contener HTML.
+> ✅ **C3 resuelto y verificado en producción el mismo día** (SQL de las secciones 8
+> y 8b): los ataques que funcionaban ahora devuelven error de permisos.
+> ✅ **A5 también resuelto el mismo día** — `esc()` aplicado en `ui.js`, `cart.js`,
+> y ampliado a `app.js`/`history.js` (misma fuente de datos, mismo patrón). Solo
+> queda abierto **A6** (precios comerciales legibles sin autenticación), que requiere
+> decisión de diseño, no es urgente para las pruebas con vendedores.
 
 ---
 
@@ -198,10 +200,12 @@ profundidad: **sección 8**.
 > `{"code":"P0001","message":"Acceso denegado"}` (HTTP 400). Ya no hay fuga de PII ni
 > escalada de privilegios sin autenticación.
 >
-> Queda pendiente, con prioridad baja, la capa de defensa en profundidad: el bloque
-> `REVOKE` original apuntaba a `anon` y fue un no-op (el grant real es a `PUBLIC`).
-> Bloque corregido en la **sección 8b** — reduce superficie, no cierra ninguna
-> vulnerabilidad abierta.
+> La capa de defensa en profundidad también quedó resuelta: el bloque `REVOKE`
+> original apuntaba a `anon` y fue un no-op (el grant real es a `PUBLIC`) — corregido
+> y ejecutado en la **sección 8b**. Re-testeado sin sesión: las 3 RPCs devuelven ahora
+> `42501 permission denied` (antes de 8b, "Acceso denegado" propio de la función; con
+> 8b, PostgREST bloquea antes de llegar a ejecutarla). Catálogo público verificado
+> intacto para invitados.
 
 ### 🟠 ALTO
 
@@ -354,6 +358,28 @@ defensa en profundidad frente a un admin comprometido o a un futuro bug de escri
 **Fix:** reusar el helper `esc()` de `admin.js:11-12` en `ui.js` y `cart.js` para todo
 dato que venga de la base y entre a un template. Es un cambio de código, no de SQL —
 no está incluido en el SQL de la sección 8.
+
+> **RESUELTO — 06/09/2026.** `esc()` ahora vive en `js/ui.js` (exportado junto a
+> `fmt`) y se aplicó a los 8 puntos identificados: `imgOrEmoji()` (`src`/`alt`),
+> `render()` (cards del catálogo, incluida la vista guest con `barcode`) y
+> `renderPromos()` (`tipo_promo`, `brand`, `name`, `size`, `drop_size`, `canal`) en
+> `ui.js`; el nombre/marca del ítem en `cart.js` (panel del carrito). Verificado con
+> Playwright: catálogo renderiza igual, sin cambios visuales, sin errores de consola.
+>
+> **Alcance ampliado más allá de lo previsto en este hallazgo** — se encontró el mismo
+> patrón sin escapar en otros dos archivos que comparten la misma fuente de datos
+> (`productos`/`promociones`) y se corrigieron en el mismo fix:
+> - `js/app.js`: thumbnails del carrusel (guest y authenticated), grid de "Nuevos
+>   lanzamientos", y los dos `<select>` de la calculadora de precios (producto y combo).
+> - `js/history.js`: nombre de producto en el historial de pedidos (`renderDetalle`),
+>   mismo problema — se inserta vía `innerHTML` sin escapar.
+>
+> **Fuera de alcance, sin tocar:** tres puntos en `js/admin.js` (línea ~218, lista de
+> promos; ~282, `<select>` del form de promo; ~428-429, lista de precios) muestran los
+> mismos campos de `productos`/`promociones` sin `esc()`. Es el admin viendo datos que
+> — con C3 cerrado — solo otro admin pudo escribir. Mismo nivel de riesgo que el que A1
+> ya dejó fuera de alcance para casos análogos; queda como ítem de bajo impacto a
+> considerar en una futura pasada de limpieza, no urgente.
 
 #### A6. Los precios comerciales (`pcom`) son legibles públicamente sin autenticación
 **Dónde:** policy RLS de `productos` — `SELECT USING (true)` para el rol `public`.
@@ -532,8 +558,8 @@ e `initCarousel` idempotentes (o `clearInterval` del intervalo previo).
 | A1 | ~~Helper `esc()` en admin.js~~ | ✅ Resuelto 21 jul 2026. |
 | A2 | ~~`promoId` en la identidad del carrito~~ | ✅ Resuelto 21 jul 2026. |
 | M3 | ~~Limpiar localStorage en logout~~ | ✅ Resuelto — rama `fix/limpieza-tecnica-fase0`. |
-| C3 | ~~Guard NULL-safe en las 7 RPCs (SQL, sección 8)~~ | ✅ Resuelto y verificado en producción 06/09/2026. Pendiente menor: `REVOKE ... FROM PUBLIC` (sección 8b), solo defensa en profundidad. |
-| A5 | Aplicar `esc()` en ui.js y cart.js | Crítico mientras C3 esté abierto (XSS almacenado contra todos los usuarios, admins incluidos). Cambio de código, no de SQL. |
+| C3 | ~~Guard NULL-safe en las 7 RPCs (SQL, sección 8)~~ | ✅ Resuelto y verificado en producción 06/09/2026, incluida la sección 8b (`REVOKE ... FROM PUBLIC`). |
+| A5 | ~~Aplicar `esc()` en ui.js y cart.js~~ | ✅ Resuelto 06/09/2026, ampliado también a app.js e history.js (misma fuente de datos). |
 
 ### Puede esperar (agendar, no ignorar)
 | # | Qué | Por qué puede esperar |
@@ -904,7 +930,7 @@ $function$;
 -- (idem para las otras 7 — `anon` nunca tuvo grant directo, hereda de PUBLIC)
 ```
 
-### 8b. Corrección del bloque REVOKE — pendiente de ejecutar
+### 8b. Corrección del bloque REVOKE — ✅ ejecutado y verificado 06/09/2026
 
 **Ejecutado el 06/09/2026: el bloque de arriba funcionó, pero solo a medias.** El guard
 NULL-safe quedó correctamente aplicado y verificado (ver "Resultado" más abajo). El
@@ -936,12 +962,12 @@ REVOKE EXECUTE ON FUNCTION public.upsert_promocion(integer, uuid, integer, text,
 REVOKE EXECUTE ON FUNCTION public.crear_pedido(uuid, text, numeric, uuid, text, jsonb) FROM PUBLIC;
 ```
 
-Tras ejecutarlo, los 8 warnings `anon_security_definer_function_executable` del advisor
-deben desaparecer. Los `authenticated_security_definer_function_executable` van a
-quedar, y está bien: los admins necesitan poder llamarlas.
-
-**Prioridad:** baja/media. El agujero crítico ya está cerrado por el guard; esto es
-reducción de superficie de ataque, no una vulnerabilidad abierta.
+**Verificado tras ejecutarlo:** re-testeadas sin sesión `get_perfiles_activos`,
+`update_perfil_admin` y `toggle_promocion` (con id inexistente) — las tres devuelven
+`{"code":"42501","message":"permission denied for function ..."}` (HTTP 401), antes
+de que la función llegue a correr. Se confirmó además que el catálogo público
+(`GET /rest/v1/productos`) sigue respondiendo 200 para invitados — el REVOKE no
+afectó el acceso a datos públicos, solo a estas 8 RPCs.
 
 **Lección para RPCs futuras:** en Postgres, `REVOKE ... FROM anon` sobre una función es
 casi siempre inútil. Si querés que una función no sea llamable sin sesión, va

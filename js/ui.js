@@ -6,9 +6,12 @@ export function fmt(v) {
   return '$ ' + v.toLocaleString('es-UY', {minimumFractionDigits:2, maximumFractionDigits:2});
 }
 
+export const esc = s => String(s ?? '').replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
 export function imgOrEmoji(p, forModal = false) {
   if (p.img) {
-    return `<img src="${p.img}" alt="${p.name}" loading="lazy">`;
+    return `<img src="${esc(p.img)}" alt="${esc(p.name)}" loading="lazy">`;
   }
   return `<span class="fallback">${EMOJI[p.cat]}</span>`;
 }
@@ -46,10 +49,10 @@ export function render(data) {
           <div class="cat-chip">${CAT[p.cat]}</div>
         </div>
         <div class="card-body">
-          <div class="card-brand">${p.brand}</div>
-          <div class="card-name">${p.name}</div>
-          <div class="card-size">${p.size} · ${p.units} u/funda</div>
-          <div class="card-barcode">Cód: ${p.barcode}</div>
+          <div class="card-brand">${esc(p.brand)}</div>
+          <div class="card-name">${esc(p.name)}</div>
+          <div class="card-size">${esc(p.size)} · ${p.units} u/funda</div>
+          <div class="card-barcode">Cód: ${esc(p.barcode)}</div>
         </div>`;
     } else {
       const ppub = p.ppub;
@@ -60,9 +63,9 @@ export function render(data) {
           <div class="cat-chip">${CAT[p.cat]}</div>
         </div>
         <div class="card-body">
-          <div class="card-brand">${p.brand}</div>
-          <div class="card-name">${p.name}</div>
-          <div class="card-size">${p.size} · ${p.units} u/funda</div>
+          <div class="card-brand">${esc(p.brand)}</div>
+          <div class="card-name">${esc(p.name)}</div>
+          <div class="card-size">${esc(p.size)} · ${p.units} u/funda</div>
           <div class="card-foot">
             <div class="c-price-block">
               <div class="c-price">${fmt(ppub)}</div>
@@ -167,14 +170,14 @@ export function renderPromos(promociones, productos, canalFiltro = 'todos') {
     card.innerHTML = `
       <div class="card-photo">
         ${imgOrEmoji(p)}
-        <div class="promo-badge">${pr.tipo_promo}</div>
+        <div class="promo-badge">${esc(pr.tipo_promo)}</div>
       </div>
       <div class="card-body">
-        <div class="card-brand">${p.brand}</div>
-        <div class="card-name">${p.name}</div>
-        <div class="card-size">${p.size} · mín. ${pr.drop_cantidad} u.</div>
-        <div class="promo-drop-label">${pr.drop_size}</div>
-        <div class="promo-canal-tag">${pr.canal}</div>
+        <div class="card-brand">${esc(p.brand)}</div>
+        <div class="card-name">${esc(p.name)}</div>
+        <div class="card-size">${esc(p.size)} · mín. ${pr.drop_cantidad} u.</div>
+        <div class="promo-drop-label">${esc(pr.drop_size)}</div>
+        <div class="promo-canal-tag">${esc(pr.canal)}</div>
         <div class="card-foot">
           <div class="c-price-block">
             <div class="c-price-subtotal">${fmt(precioFundaOriginal)}</div>

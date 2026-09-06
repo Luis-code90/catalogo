@@ -9,7 +9,7 @@ import { sendToWhatsApp } from './whatsapp.js';
 import { updateClientInfoLine, editClientInfo, confirmClientInfo, cancelClientInfo, setClientType, clientStepBack, clientStepNext, openClientModal, showStep } from './client.js';
 import { openOrderHistory, closeOrderHistory, closeHistoryBg } from './history.js';
 import { clearCart, addToCart, removeFromCart } from './cart.js';
-import { updateUIForRole, renderPromos, fmt } from './ui.js';
+import { updateUIForRole, renderPromos, fmt, esc } from './ui.js';
 import { openProfile, closeProfile, closeProfileBg, saveProfile } from './profile.js';
 
 let initialized = false;
@@ -80,7 +80,7 @@ function initCarousel() {
     const nuevos = productos.filter(p => p.es_nuevo);
     const thumbsEl = document.getElementById('pcGuestThumbs');
     if (thumbsEl) thumbsEl.innerHTML = nuevos.slice(0, 4).map(p =>
-      p.img ? `<img class="pc-thumb" src="${p.img}" alt="${p.name}">` : `<div class="pc-thumb-fallback">🆕</div>`
+      p.img ? `<img class="pc-thumb" src="${esc(p.img)}" alt="${esc(p.name)}">` : `<div class="pc-thumb-fallback">🆕</div>`
     ).join('');
     return;
   }
@@ -96,7 +96,7 @@ function initCarousel() {
   const nuevos = productos.filter(p => p.es_nuevo);
   document.getElementById('pcThumbs').innerHTML = nuevos.slice(0, 4).map(p =>
     p.img
-      ? `<img class="pc-thumb" src="${p.img}" alt="${p.name}">`
+      ? `<img class="pc-thumb" src="${esc(p.img)}" alt="${esc(p.name)}">`
       : `<div class="pc-thumb-fallback">🆕</div>`
   ).join('');
 
@@ -173,13 +173,13 @@ function verNuevosLanzamientos() {
   grid.innerHTML = nuevos.map((p, i) => `
     <div class="card nuevo-card" style="animation-delay:${i * 0.025}s">
       <div class="card-photo">
-        ${p.img ? `<img src="${p.img}" alt="${p.name}" loading="lazy">` : `<span class="fallback">🆕</span>`}
+        ${p.img ? `<img src="${esc(p.img)}" alt="${esc(p.name)}" loading="lazy">` : `<span class="fallback">🆕</span>`}
         <div class="cat-chip">NUEVO</div>
       </div>
       <div class="card-body">
-        <div class="card-brand">${p.brand}</div>
-        <div class="card-name">${p.name}</div>
-        <div class="card-size">${p.size}</div>
+        <div class="card-brand">${esc(p.brand)}</div>
+        <div class="card-name">${esc(p.name)}</div>
+        <div class="card-size">${esc(p.size)}</div>
       </div>
     </div>
   `).join('');
@@ -203,7 +203,7 @@ function initCalculadora() {
   const selectProducto = document.getElementById('calcProducto');
   if (!selectProducto) return;
   selectProducto.innerHTML = '<option value="">— Seleccioná un producto —</option>' +
-    productos.map(p => `<option value="${p.id}">${p.brand} ${p.name} (${p.size})</option>`).join('');
+    productos.map(p => `<option value="${p.id}">${esc(p.brand)} ${esc(p.name)} (${esc(p.size)})</option>`).join('');
 
   const selectCombo = document.getElementById('calcCombo');
   selectCombo.innerHTML = '<option value="">— Sin combo —</option>';
@@ -212,7 +212,7 @@ function initCalculadora() {
     const productoId = parseInt(selectProducto.value);
     const combosDelProducto = promociones.filter(pr => pr.producto_id === productoId && pr.activa);
     selectCombo.innerHTML = '<option value="">— Sin combo —</option>' +
-      combosDelProducto.map(pr => `<option value="${pr.id}">${pr.tipo_promo} — ${pr.drop_size} (${pr.descuento_pct}%)</option>`).join('');
+      combosDelProducto.map(pr => `<option value="${pr.id}">${esc(pr.tipo_promo)} — ${esc(pr.drop_size)} (${pr.descuento_pct}%)</option>`).join('');
     calcUpdate();
   });
 }

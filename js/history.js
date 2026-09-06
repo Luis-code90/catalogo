@@ -1,4 +1,4 @@
-import { fmt } from './ui.js';
+import { fmt, esc } from './ui.js';
 import { fetchPedidosUsuario } from './supabase.js';
 import { getEmpresaId } from './state.js';
 
@@ -14,7 +14,7 @@ function formatDate(iso) {
 function renderDetalle(detalle) {
   const p = detalle.productos;
   if (!p) return '';
-  const name = `${p.brand || ''} ${p.name}`.trim();
+  const name = `${esc(p.brand || '')} ${esc(p.name)}`.trim();
   const units = detalle.unidades_por_paquete;
   const qty = detalle.cantidad;
   const qtyDisplay = p.cat === 'vino' || p.cat === 'sidra'

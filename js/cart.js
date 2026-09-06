@@ -1,6 +1,6 @@
 import { getCART, setCART, MIN_ORDER_AMOUNT, getUserRole } from './state.js';
 import { saveCart } from './storage.js';
-import { fmt, animateCartBounce } from './ui.js';
+import { fmt, animateCartBounce, esc } from './ui.js';
 
 export function getPriceFunda(product) {
   if (!product.pcom) return null;
@@ -92,7 +92,7 @@ export function updateCartUI() {
         return `
         <div class="cart-item">
           <div class="ci-info">
-            <div class="ci-name">${item.product.brand} ${item.product.name}</div>
+            <div class="ci-name">${esc(item.product.brand)} ${esc(item.product.name)}</div>
             <div class="ci-qty">${displayQty} · ${fmt(pf)}</div>
             <div class="ci-subtotal">${fmt(pf * item.qty)}</div>
           </div>
