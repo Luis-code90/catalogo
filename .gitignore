@@ -1,3 +1,5 @@
 .DS_Store
 *.log
 roadmap.md
+.mcp.json
+.claude/
