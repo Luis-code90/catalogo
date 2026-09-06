@@ -16,6 +16,14 @@ registro, severidad baja, depende del diseño de alta multi-tenant) y M2
 (regla de total con productos sin `pcom`, depende de una decisión de negocio)
 — ver sección 2.
 
+**Actualización 06/09/2026:** primer chequeo con acceso de solo lectura a la base real
+(antes solo se auditaba el código JS) encontró un hallazgo crítico nuevo, no visible
+desde el repo — dos RPCs de lectura de perfiles sin ningún chequeo de acceso, fuga de
+PII explotable sin autenticación (**A4**, sección propia). SQL del fix y de un par de
+hallazgos bajos adicionales (B7, B8) queda listo para ejecutar en la sección 7, más
+datos operativos verificados (0 promociones vigentes, sin vendedores reales con cuenta)
+en la sección 6.
+
 ---
 
 ## 1. Riesgos por severidad
@@ -193,6 +201,49 @@ multi-tenant.
 de la próxima empresa (¿validar `empresa_id` contra el slug con un trigger? ¿scoping
 adicional en la policy?) — decisión pendiente, no tomarla apurado.
 
+#### A4. RPCs de lectura de perfiles sin ningún chequeo de acceso — fuga de PII
+**Dónde:** RPCs `get_perfiles_activos(p_empresa_id)` y `get_perfiles_pendientes(p_empresa_id)`
+en Supabase (código fuente real, confirmado vía `pg_get_functiondef` — no visible desde el
+repo JS).
+
+A diferencia de las otras 6 RPCs admin (`update_perfil_admin`, `toggle_promocion`,
+`delete_promocion`, `update_precio_producto`, `upsert_promocion`), que sí validan
+`rol = 'admin'` antes de ejecutar, estas dos son `SECURITY DEFINER` **sin ningún chequeo**:
+
+```sql
+CREATE OR REPLACE FUNCTION public.get_perfiles_activos(p_empresa_id uuid)
+ RETURNS SETOF perfiles
+ LANGUAGE sql
+ SECURITY DEFINER
+AS $function$
+  SELECT * FROM perfiles
+  WHERE empresa_id = p_empresa_id
+  AND estado = 'activo'
+  ORDER BY created_at DESC;
+$function$
+```
+(`get_perfiles_pendientes` es idéntica, sin el `ORDER BY`.)
+
+El advisor de seguridad de Supabase (`get_advisors`) confirma que ambas son ejecutables
+por los roles `anon` **y** `authenticated` vía `/rest/v1/rpc/get_perfiles_activos` y
+`/rest/v1/rpc/get_perfiles_pendientes` — es decir, cualquiera con la anon key pública
+(sin sesión) puede llamarlas directamente y obtener el dataset completo de `perfiles`
+(nombre, apellido, email, teléfono, fecha de nacimiento, estado) de todos los usuarios
+activos o pendientes de la empresa, sin necesitar `rol='admin'` ni siquiera estar
+autenticado.
+
+**Severidad:** crítica — es fuga de PII de todos los usuarios, explotable con un curl
+sin autenticación. Es la RPC que alimenta las tabs "Usuarios pendientes"/"Usuarios
+activos" del panel admin (admin.js), pero el acceso real que otorga la base de datos
+es público.
+
+**Fix (SQL, sección 7 de este documento):** agregar el mismo chequeo `rol = 'admin'`
+que ya tienen las otras 6 RPCs, reescribiendo ambas funciones en `plpgsql` con
+`RAISE EXCEPTION 'Acceso denegado'` si el caller no es admin.
+
+**Estado:** confirmado vía Supabase real (solo lectura) el 06/09/2026. Pendiente de
+ejecutar — requiere acceso de escritura que esta sesión no tiene.
+
 ### 🟡 MEDIO
 
 #### M1. Desync contador↔carrito en las cards del catálogo
@@ -297,6 +348,23 @@ e `initCarousel` idempotentes (o `clearInterval` del intervalo previo).
   ahora también escucha `SIGNED_OUT` (no se agregó `TOKEN_REFRESHED` — ese evento
   indica refresh exitoso, no expiración; degradar ahí sería incorrecto) y llama
   `resetToGuest()`, la misma función extraída de `handleLogout()` en M3.
+- **B7.** 8 funciones de Postgres sin `search_path` fijado (`function_search_path_mutable`,
+  advisor de seguridad de Supabase, confirmado 06/09/2026): `handle_updated_at`,
+  `get_perfiles_pendientes`, `get_perfiles_activos`, `update_perfil_admin`,
+  `toggle_promocion`, `upsert_promocion`, `delete_promocion`, `update_precio_producto`.
+  (`crear_pedido` ya tiene `SET search_path TO 'public'` — no está en la lista.) Riesgo
+  bajo en la práctica (requiere que alguien pueda crear objetos en un esquema anterior en
+  el `search_path` del rol), pero es hardening estándar y de una sola línea por función.
+  Fix en sección 7.
+- **B8.** Cuenta de prueba sin borrar: `qa.playwright.test@mirlosas-test.invalid`
+  (creada 11/08/2026 durante el QA con Playwright de esta sesión), `rol='vendedor'`,
+  `estado='activo'`. Es además, hoy, **el único perfil con `rol='vendedor'` que existe
+  en la base** — ver hallazgo operativo en sección 6. Borrado opcional en sección 7
+  (requiere decisión del usuario, no es automático).
+- **B9.** Protección de contraseñas filtradas (HaveIBeenPwned) deshabilitada en Supabase
+  Auth (`auth_leaked_password_protection`, advisor de seguridad). No es un fix de código
+  ni de SQL — se activa con un toggle en Supabase Dashboard → Authentication → Policies.
+  Recomendado antes de abrir el registro a usuarios reales.
 
 ---
 
@@ -357,9 +425,21 @@ e `initCarousel` idempotentes (o `clearInterval` del intervalo previo).
    `vendedores_asignados` en `getPerfilByUserId` no filtra datos ajenos.
 4. ~~**Tipos reales de `pedidos.empresa_id` y `pedidos.vendedor_id`**~~ —
    **RESUELTO 21 jul 2026:** confirmados como `uuid` (ver D4).
-5. **RPCs admin y cross-empresa** — confirmar que `update_perfil_admin`, `upsert_promocion`,
-   etc. validan que el recurso pertenece a la empresa del admin que llama (hoy validan
-   rol, no tenancy). Sigue pendiente.
+5. ~~**RPCs admin y cross-empresa**~~ — **CONFIRMADO 06/09/2026 en código fuente real**
+   (`pg_get_functiondef`, no auditable desde el repo JS): las 6 RPCs admin
+   (`update_perfil_admin`, `toggle_promocion`, `delete_promocion`,
+   `update_precio_producto`, `upsert_promocion`) validan `rol = 'admin'` del caller,
+   pero **ninguna valida que el recurso (`p_perfil_id`, `p_id` de promo/producto,
+   `p_empresa_id`) pertenezca a la misma empresa que el admin que llama** — un admin de
+   la empresa A podría, en teoría, editar precios/promos/usuarios de la empresa B si
+   conociera sus ids. `crear_pedido` (no admin, para cualquier autenticado) solo valida
+   `auth.uid() IS NULL`; tampoco valida que `p_empresa_id`/`p_vendedor_id` correspondan
+   a la empresa o comercio real del perfil que llama. Además, dos RPCs de esta misma
+   familia (`get_perfiles_activos`/`get_perfiles_pendientes`) directamente no validan
+   ni siquiera el rol — ver hallazgo nuevo **A4** (crítico, sección propia).
+   Severidad de este ítem: baja hoy (una sola empresa activa, ver A3), pero
+   **agrava el estado de A4** — mismo patrón de "confía en el parámetro, no en quién
+   llama" repetido en 8 de las 9 RPCs auditadas.
 
 ---
 
@@ -400,3 +480,124 @@ Verificación post-SQL — **completada 21 jul 2026** (ver blockquotes de C1/C2 
 - Registro de usuario nuevo → funciona con las columnas permitidas. ✅
 - Editar nombre/teléfono desde el panel de perfil de la app → funciona. ✅
 - Editar comercio desde el panel de perfil → funciona. ✅
+
+---
+
+## 6. Datos operativos verificados en Supabase — 06/09/2026 (no son bugs de código)
+
+Chequeo general de datos reales antes de arrancar la fase de pruebas con vendedores,
+vía `supabase-mirlo` (solo lectura). Estos hallazgos no requieren cambios de código —
+son datos de negocio que el usuario tiene que cargar o decidir.
+
+- **0 promociones vigentes.** De 54 promociones totales en la tabla, la `fecha_fin` más
+  tardía es 31/08/2026 y la más temprana 30/06/2026 — hoy (06/09/2026) **todas están
+  vencidas**. `renderPromos()` no va a mostrar nada en el carrusel ni en el grid de
+  promos hasta que se carguen promociones nuevas con fechas vigentes.
+- **Los 5 vendedores comparten el mismo teléfono** (`59897821688` — el general de la
+  empresa) en la tabla `vendedores`. Si el flujo de WhatsApp está pensado para que cada
+  vendedor reciba los pedidos de sus propios clientes en su propio celular, hoy todos le
+  llegan al mismo número sea cual sea el vendedor asignado.
+- **0 perfiles reales con `rol='vendedor'`.** El único perfil con ese rol en `perfiles`
+  es la cuenta de prueba `qa.playwright.test@mirlosas-test.invalid` creada durante el QA
+  de esta sesión (ver B8). Ningún vendedor real tiene todavía una cuenta para loguearse
+  y usar la calculadora de precios. Distribución completa: 2 `admin`/activo,
+  1 `cliente`/activo, 1 `vendedor`/activo (la cuenta de prueba).
+  Coherente con el hallazgo de la sesión anterior: solo hay **1 fila en
+  `vendedores_asignados`** en toda la base — la inmensa mayoría de perfiles no tiene
+  ningún vendedor asignado, lo que explica por qué el fast-path de `sendToWhatsApp()`
+  rara vez se dispara en pruebas reales (no es un bug — falta cargar datos).
+- **5 pedidos de prueba** en la tabla `pedidos`, todos `estado='pendiente'`, creados
+  entre el 20/07/2026 y el 03/08/2026 — datos de desarrollo, no de clientes reales.
+  Decidir si limpiarlos antes de que el panel admin/dashboard los mezcle con pedidos
+  reales de vendedores.
+
+## 7. SQL listo para ejecutar (pendiente — requiere acceso de escritura)
+
+Todo lo siguiente está redactado contra el código fuente real de las funciones
+(confirmado vía `pg_get_functiondef` el 06/09/2026) y listo para copiar y pegar en el
+SQL Editor de Supabase. Esta sesión solo tiene acceso de lectura a la base — nada de
+esto fue ejecutado.
+
+```sql
+-- ── A4 (crítico): agregar chequeo de admin a las 2 RPCs que no tenían ninguno ──
+-- Mismo patrón que ya usan update_perfil_admin/toggle_promocion/etc.
+
+CREATE OR REPLACE FUNCTION public.get_perfiles_activos(p_empresa_id uuid)
+ RETURNS SETOF perfiles
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path = public
+AS $function$
+BEGIN
+  IF (SELECT rol FROM perfiles WHERE id = auth.uid()) != 'admin' THEN
+    RAISE EXCEPTION 'Acceso denegado';
+  END IF;
+
+  RETURN QUERY
+  SELECT * FROM perfiles
+  WHERE empresa_id = p_empresa_id
+  AND estado = 'activo'
+  ORDER BY created_at DESC;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.get_perfiles_pendientes(p_empresa_id uuid)
+ RETURNS SETOF perfiles
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path = public
+AS $function$
+BEGIN
+  IF (SELECT rol FROM perfiles WHERE id = auth.uid()) != 'admin' THEN
+    RAISE EXCEPTION 'Acceso denegado';
+  END IF;
+
+  RETURN QUERY
+  SELECT * FROM perfiles
+  WHERE empresa_id = p_empresa_id
+  AND estado = 'pendiente';
+END;
+$function$;
+
+-- ── B7 (bajo): fijar search_path en las 6 RPCs restantes que no lo tenían ──
+-- (get_perfiles_activos/pendientes ya quedan con SET search_path en el CREATE OR REPLACE de arriba;
+--  crear_pedido ya lo tenía)
+
+ALTER FUNCTION public.handle_updated_at() SET search_path = public;
+ALTER FUNCTION public.update_perfil_admin(uuid, text, text, text) SET search_path = public;
+ALTER FUNCTION public.toggle_promocion(integer, boolean) SET search_path = public;
+ALTER FUNCTION public.delete_promocion(integer) SET search_path = public;
+ALTER FUNCTION public.update_precio_producto(integer, numeric, numeric) SET search_path = public;
+ALTER FUNCTION public.upsert_promocion(integer, uuid, integer, text, text, text, numeric, text, integer, text, date, date, boolean) SET search_path = public;
+```
+
+Verificación sugerida post-SQL (mismo patrón que la sección 5):
+- Desde un usuario NO admin, con la anon key, sin sesión: `POST /rest/v1/rpc/get_perfiles_activos`
+  → debe devolver error de permisos/excepción en vez de la lista de perfiles.
+- Panel admin como usuario admin real → tabs "Usuarios pendientes"/"Usuarios activos"
+  siguen funcionando igual que antes.
+
+```sql
+-- ── B8 (opcional — requiere decisión del usuario, no ejecutar sin confirmar) ──
+-- Borra la cuenta de prueba QA Playwright y sus filas dependientes, en este orden
+-- (respeta FKs: vendedores_asignados/comercios → perfiles → auth.users).
+-- Reemplazar el uuid si difiere del confirmado el 06/09/2026:
+--   1e10ffe6-c50c-4fc3-bf66-7bf0a9c9f2c8 (qa.playwright.test@mirlosas-test.invalid)
+
+DELETE FROM vendedores_asignados WHERE perfil_id = '1e10ffe6-c50c-4fc3-bf66-7bf0a9c9f2c8';
+DELETE FROM comercios WHERE perfil_id = '1e10ffe6-c50c-4fc3-bf66-7bf0a9c9f2c8';
+DELETE FROM perfiles WHERE id = '1e10ffe6-c50c-4fc3-bf66-7bf0a9c9f2c8';
+-- El usuario de auth.users se borra desde Supabase Dashboard → Authentication → Users
+-- (no vía SQL directo, requiere el service role).
+
+-- Los 5 pedidos de prueba (ver sección 6) — opcional, decidir si se conservan como
+-- referencia o se limpian antes de la fase de pruebas con vendedores reales:
+-- DELETE FROM pedidos WHERE id IN (
+--   '66756d91-a88d-405b-a05f-e3f31c2d73b8', '9d52e5e8-e316-4e2d-b538-fef047be3ba1',
+--   '6ab74c49-7604-4537-9ecc-7034a0d6feb4', 'e270d913-a86d-4ea1-a5d8-47927654ac24',
+--   'b7ee9076-86a9-47a5-aa60-b5c6f243de9f'
+-- ); -- pedido_detalle se borra en cascada si el FK tiene ON DELETE CASCADE (verificar antes)
+```
+
+No-SQL, requiere toggle en el dashboard (ver B9):
+Supabase Dashboard → Authentication → Policies → activar "Leaked password protection".

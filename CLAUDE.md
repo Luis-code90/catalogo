@@ -138,7 +138,7 @@ Actualización junio 2026:
 | apellido         | text    |                                    |
 | telefono         | text    | nullable                           |
 | fecha_nacimiento | date    | nullable — usado para gate alcohol |
-| estado           | text    | 'pendiente' o 'activo' — gatea el acceso al catálogo |
+| estado           | text    | 'pendiente' o 'activo' — gatea el acceso al catálogo. El constraint real en Postgres también acepta 'inactivo', no usado hoy por ningún flujo del código |
 | created_at       | timestamptz |                               |
 | updated_at       | timestamptz |                               |
 
@@ -434,6 +434,12 @@ Esta tabla de pedidos es la fuente de datos para el futuro dashboard de ventas d
 ## Pendientes
 - fecha_lanzamiento en productos para ordenar y archivar lanzamientos
 - Reemplazar barcodes temporales (TEMP-106 a TEMP-114) por códigos reales
+- **Bloqueante antes de pruebas con vendedores reales** (chequeo Supabase 06/09/2026,
+  ver AUDIT.md hallazgo A4 y sección 7): dos RPCs (`get_perfiles_activos`,
+  `get_perfiles_pendientes`) están expuestas sin ningún chequeo de rol — fuga de PII
+  explotable sin autenticación. SQL del fix listo para pegar en AUDIT.md sección 7,
+  junto con el pin de `search_path` en las 6 RPCs restantes (B7). Requiere acceso de
+  escritura a Supabase que esta sesión no tiene.
 
 ## Auditoría de código (junio 2026)
 Análisis completo realizado antes de pruebas con vendedores. 22 problemas en 5 categorías.
