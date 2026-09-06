@@ -356,15 +356,26 @@ e `initCarousel` idempotentes (o `clearInterval` del intervalo previo).
   bajo en la práctica (requiere que alguien pueda crear objetos en un esquema anterior en
   el `search_path` del rol), pero es hardening estándar y de una sola línea por función.
   Fix en sección 7.
-- **B8.** Cuenta de prueba sin borrar: `qa.playwright.test@mirlosas-test.invalid`
-  (creada 11/08/2026 durante el QA con Playwright de esta sesión), `rol='vendedor'`,
-  `estado='activo'`. Es además, hoy, **el único perfil con `rol='vendedor'` que existe
-  en la base** — ver hallazgo operativo en sección 6. Borrado opcional en sección 7
-  (requiere decisión del usuario, no es automático).
+- **B8.** ~~Cuenta de prueba sin borrar~~ — **DECISIÓN 06/09/2026: se mantiene.**
+  `qa.playwright.test@mirlosas-test.invalid` (creada 11/08/2026 durante el QA con
+  Playwright de esta sesión), `rol='vendedor'`, `estado='activo'`. El usuario decidió
+  conservarla para futuras pruebas del flujo de vendedor en vez de borrarla — el SQL de
+  borrado sigue disponible en sección 7 si se necesita más adelante. Es, hoy, **el único
+  perfil con `rol='vendedor'` que existe en la base** (ver sección 6) — tenerlo en cuenta
+  al leer métricas de vendedores reales para no confundirla con una cuenta real.
 - **B9.** Protección de contraseñas filtradas (HaveIBeenPwned) deshabilitada en Supabase
-  Auth (`auth_leaked_password_protection`, advisor de seguridad). No es un fix de código
-  ni de SQL — se activa con un toggle en Supabase Dashboard → Authentication → Policies.
-  Recomendado antes de abrir el registro a usuarios reales.
+  Auth (`auth_leaked_password_protection`, advisor de seguridad). Se configura en
+  Authentication → Sign In / Providers → Email (no en "Policies", que son las RLS).
+
+  **DECISIÓN 06/09/2026: riesgo aceptado por ahora.** Esta protección específica
+  requiere plan Pro o superior en Supabase (confirmado en la documentación oficial);
+  el proyecto está en plan Free. Impacto real considerado bajo con el perfil actual:
+  el registro ya está gateado por aprobación de admin (C2, cuentas nuevas quedan en
+  `pending` sin acceso), no se maneja información de pago, y la base de usuarios reales
+  es chica. No amerita upgrade de plan solo por esto. Mitigación gratuita aplicable en
+  la misma pantalla: exigir longitud mínima (8+) y mezcla de caracteres en la
+  contraseña — eso sí está disponible en el plan Free. Revisar de nuevo si la base de
+  usuarios reales crece significativamente o se agregan pagos.
 
 ---
 
@@ -578,7 +589,8 @@ Verificación sugerida post-SQL (mismo patrón que la sección 5):
   siguen funcionando igual que antes.
 
 ```sql
--- ── B8 (opcional — requiere decisión del usuario, no ejecutar sin confirmar) ──
+-- ── B8 (NO ejecutar — decisión 06/09/2026: se mantiene la cuenta) ──
+-- Se deja el SQL documentado por si en el futuro se decide borrarla.
 -- Borra la cuenta de prueba QA Playwright y sus filas dependientes, en este orden
 -- (respeta FKs: vendedores_asignados/comercios → perfiles → auth.users).
 -- Reemplazar el uuid si difiere del confirmado el 06/09/2026:
@@ -599,5 +611,7 @@ DELETE FROM perfiles WHERE id = '1e10ffe6-c50c-4fc3-bf66-7bf0a9c9f2c8';
 -- ); -- pedido_detalle se borra en cascada si el FK tiene ON DELETE CASCADE (verificar antes)
 ```
 
-No-SQL, requiere toggle en el dashboard (ver B9):
-Supabase Dashboard → Authentication → Policies → activar "Leaked password protection".
+No-SQL (ver B9) — **riesgo aceptado, no se va a ejecutar**: activar "Prevent use of
+leaked passwords" en Authentication → Sign In / Providers → Email requiere plan Pro;
+el proyecto está en plan Free. Mitigación gratuita aplicable en la misma pantalla:
+subir la longitud mínima de contraseña a 8+ y exigir mezcla de caracteres.
