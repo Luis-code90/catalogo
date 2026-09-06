@@ -362,6 +362,19 @@ Link de acceso: ícono engranaje en header, visible solo si perfil.rol === 'admi
 ### Funciones RPC en Supabase (SECURITY DEFINER — bypass RLS):
 Todas las RPCs validan auth.uid() con rol='admin' antes de ejecutar.
 Si el usuario no es admin, lanzan RAISE EXCEPTION 'Acceso denegado'.
+
+**Regla permanente para el guard de rol (fix crítico C3, 06/09/2026):** usar siempre
+`IF NOT EXISTS (SELECT 1 FROM perfiles WHERE id = auth.uid() AND rol = 'admin')`.
+Nunca `IF (SELECT rol FROM perfiles WHERE id = auth.uid()) != 'admin'` — con un
+llamador sin sesión, `auth.uid()` es NULL, la subquery no devuelve filas, la
+comparación `!=` da NULL, y plpgsql trata NULL como falso: la excepción nunca se
+lanza y la RPC se ejecuta igual. `NOT EXISTS` es inmune a esto por construcción.
+Las 8 RPCs de esta lista (todas menos `crear_pedido`, que ya usaba
+`auth.uid() IS NULL`) tuvieron este bug y fueron explotables sin autenticación
+hasta el fix. Además tienen `REVOKE EXECUTE ... FROM PUBLIC` como defensa en
+profundidad — ojo que `REVOKE ... FROM anon` es un no-op (el grant por defecto es
+a `PUBLIC`, no a `anon` directamente). Detalle completo en AUDIT.md (C3, secciones 8/8b).
+
 - get_perfiles_pendientes(p_empresa_id) — perfiles con estado = 'pendiente'
 - get_perfiles_activos(p_empresa_id) — perfiles con estado = 'activo', orden desc
 - update_perfil_admin(p_perfil_id, p_canal, p_estado, p_rol) — UPDATE bypass RLS
@@ -441,20 +454,10 @@ Esta tabla de pedidos es la fuente de datos para el futuro dashboard de ventas d
 ## Pendientes
 - fecha_lanzamiento en productos para ordenar y archivar lanzamientos
 - Reemplazar barcodes temporales (TEMP-106 a TEMP-114) por códigos reales
-- ✅ **C3 resuelto 06/09/2026** (ver AUDIT.md): el chequeo de rol de las 7 RPCs admin
-  no bloqueaba a llamadores anónimos. El patrón
-  `IF (SELECT rol FROM perfiles WHERE id = auth.uid()) != 'admin'` evalúa a NULL cuando
-  no hay sesión (`auth.uid()` es NULL → la subquery no devuelve filas), y plpgsql trata
-  NULL como falso, así que la excepción nunca se lanzaba: cualquiera sin cuenta podía
-  leer todos los perfiles, cambiar precios, borrar promos y asignarse `rol='admin'`.
-  **Regla permanente: todo chequeo de rol en una RPC va con
-  `IF NOT EXISTS (SELECT 1 FROM perfiles WHERE id = auth.uid() AND rol = 'admin')`,
-  que es NULL-safe. Nunca con `!=` sobre una subquery escalar.**
-  Pendiente menor asociado: `REVOKE EXECUTE ... FROM PUBLIC` (AUDIT.md sección 8b) —
-  ojo que `REVOKE ... FROM anon` sobre funciones es un no-op, el grant real es a PUBLIC.
-- Aplicar el helper `esc()` de admin.js también en `ui.js` y `cart.js` (AUDIT.md **A5**):
-  interpolan datos de la base en `innerHTML` sin escapar. Se habían dejado afuera del
-  fix A1 asumiendo que solo los admins escriben esos campos — C3 invalida ese supuesto.
+- AUDIT.md hallazgo A6: precios comerciales (`pcom`) legibles sin autenticación
+  (policy `SELECT USING (true)` en `productos`). Requiere decisión de diseño — los
+  invitados deben seguir viendo el catálogo sin precios. No bloquea pruebas con
+  vendedores; sí conviene resolverlo antes de difundir el catálogo públicamente.
 
 ## Auditoría de código (junio 2026)
 Análisis completo realizado antes de pruebas con vendedores. 22 problemas en 5 categorías.
@@ -499,11 +502,28 @@ Resueltos (Fase 0 — julio 2026):
   190-200 y cart/cart-panel 250-260), igual que ya le pasaba correctamente al
   botón del carrito.
 
+Resueltos (06/09/2026 — chequeo de seguridad con acceso a Supabase real):
+- C3 (crítico): el guard de rol de 7 RPCs admin no bloqueaba a llamadores sin
+  sesión por lógica NULL de SQL — cualquiera podía leer todos los perfiles,
+  cambiar precios, borrar promos y asignarse `rol='admin'` sin autenticarse.
+  Comprobado explotable en producción y luego cerrado con un guard `NOT EXISTS`
+  (NULL-safe) más `REVOKE EXECUTE ... FROM PUBLIC` como defensa en profundidad.
+  Regla permanente documentada arriba, en "Funciones RPC en Supabase". Detalle
+  completo con los curl de verificación en AUDIT.md (hallazgo C3, secciones 8/8b).
+- A5 (XSS almacenado, encadenado con C3): `esc()` — antes solo en admin.js (A1) —
+  se extendió a `ui.js`, `cart.js`, `app.js` e `history.js`, que interpolaban
+  `brand`/`name`/`size`/`img`/`tipo_promo`/`drop_size`/`canal` en `innerHTML` sin
+  escapar. Mientras C3 estuvo abierto, esto era explotable por cualquiera sin
+  cuenta vía `upsert_promocion`. Detalle completo en AUDIT.md (hallazgo A5).
+
 Pendientes (baja prioridad):
 - ~~U4~~: Panel admin responsive mobile — resuelto (@media 768px y 480px en base.css)
-- C3/C4: console.warn/error en storage.js y app.js en producción
+- C3/C4 (numeración de esta lista original, no confundir con el C3 de AUDIT.md):
+  console.warn/error en storage.js y app.js en producción
 - S2: Protección admin solo client-side (mitigado por validación en RPCs)
-- get_perfiles_activos no filtra por rol server-side — filtro solo client-side en admin.js:133
+- admin.js:~218,282,428-429 muestran brand/name/size/tipo_promo/drop_size/canal sin
+  `esc()` — el admin viendo datos que, con C3 cerrado, solo otro admin pudo escribir.
+  Mismo criterio que dejó A1 sin tocar casos análogos; bajo impacto, no urgente.
 - Idea a futuro (sin diseñar aún): acción masiva "duplicar promos vencidas
   seleccionadas al próximo período" en vez de editar fecha_fin in-place —
   preserva historial de qué promo corrió cada mes, reusa upsertPromocion en
