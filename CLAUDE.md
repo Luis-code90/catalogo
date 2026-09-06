@@ -497,3 +497,11 @@ Pendientes (baja prioridad):
   producto — este archivo (CLAUDE.md) documenta el estado técnico actual
   (arquitectura, bugs resueltos, schema). Actualizar ambos al cierre de sesión:
   bugs/features nuevas acá, checkboxes de fase allá.
+
+## Verificación con Playwright (opcional, bajo demanda)
+
+Hay un servidor Playwright MCP conectado. NO usarlo automáticamente en 
+cada cambio — solo cuando el usuario lo pida explícitamente (ej: 
+"verificá esto con Playwright" o "revisá el proyecto en el navegador").
+Al usarlo: probá el flujo relevante como el rol correspondiente 
+(guest/pending/authenticated) y revisá la consola por errores de JS.
