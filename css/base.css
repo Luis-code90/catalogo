@@ -299,7 +299,7 @@ main { padding:1.8rem 2rem 4rem; max-width:1480px; margin:0 auto; }
 @media (max-width: 768px) {
   .admin-tabs { flex-wrap: wrap; }
   .admin-precios-row {
-    grid-template-columns: 2fr 1fr 1fr 1fr auto;
+    grid-template-columns: 2fr 1fr 1fr 1fr auto auto;
     font-size: .8rem;
   }
   .admin-precios-row input { font-size: .8rem; padding: .3rem .5rem; }

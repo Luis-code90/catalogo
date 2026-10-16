@@ -11,6 +11,13 @@ function clearSessionCache(prefix) {
     .forEach(k => sessionStorage.removeItem(k));
 }
 
+// Al cerrar sesión: limpia cachés con datos privados (precios admin, vendedores, promos).
+export function clearPriceCache() {
+  clearSessionCache('mirlo_productos_admin_');
+  clearSessionCache('mirlo_vendedores_');
+  clearSessionCache('mirlo_promociones_');
+}
+
 function getCached(key) {
   const raw = sessionStorage.getItem(key);
   if (!raw) return null;
@@ -40,6 +47,10 @@ export async function fetchEmpresa(slug) {
 }
 
 // ── PRODUCTOS ─────────────────────────────────────────────
+// Sin pcom/ppub: esas columnas no son legibles para anon/authenticated (A6).
+// Los precios llegan por fetchPrecios(), solo para perfiles activos.
+const PRODUCTO_COLS = 'id, empresa_id, name, brand, cat, size, units, barcode, img, activo, es_nuevo';
+
 export async function fetchProductos(empresaId) {
   const key = `mirlo_productos_${empresaId}`;
   const cached = getCached(key);
@@ -47,7 +58,7 @@ export async function fetchProductos(empresaId) {
 
   const { data, error } = await supabase
     .from('productos')
-    .select('*')
+    .select(PRODUCTO_COLS)
     .eq('empresa_id', empresaId)
     .eq('activo', true)
     .order('cat')
@@ -55,6 +66,12 @@ export async function fetchProductos(empresaId) {
     .order('name');
   if (error) throw new Error(error.message);
   sessionStorage.setItem(key, JSON.stringify(data));
+  return data;
+}
+
+export async function fetchPrecios(empresaId) {
+  const { data, error } = await supabase.rpc('get_precios', { p_empresa_id: empresaId });
+  if (error) throw new Error(error.message);
   return data;
 }
 
@@ -290,26 +307,60 @@ export async function upsertPromocion(promo) {
 }
 
 export async function fetchProductosAdmin(empresaId) {
-  const key = `mirlo_productos_admin_${empresaId}`;
+  const key = `mirlo_productos_admin_v3_${empresaId}`;
   const cached = getCached(key);
   if (cached) return cached;
 
-  const { data, error } = await supabase
-    .from('productos')
-    .select('id, name, brand, cat, size, units, pcom, ppub, activo')
-    .eq('empresa_id', empresaId)
-    .order('cat')
-    .order('brand')
-    .order('activo', { ascending: false })
-    .order('name');
+  const [{ data, error }, precios] = await Promise.all([
+    supabase
+      .from('productos')
+      .select('id, name, brand, cat, size, units, barcode, img, es_nuevo, activo')
+      .eq('empresa_id', empresaId)
+      .order('cat')
+      .order('brand')
+      .order('activo', { ascending: false })
+      .order('name'),
+    fetchPrecios(empresaId)
+  ]);
   if (error) throw new Error(error.message);
-  sessionStorage.setItem(key, JSON.stringify(data));
-  return data;
+  const porId = new Map(precios.map(r => [r.id, r]));
+  const merged = data.map(p => ({ ...p, pcom: porId.get(p.id)?.pcom ?? null, ppub: porId.get(p.id)?.ppub ?? null }));
+  sessionStorage.setItem(key, JSON.stringify(merged));
+  return merged;
 }
 
 export async function updatePrecioProducto(id, pcom, ppub) {
   const { error } = await supabase
     .rpc('update_precio_producto', { p_id: id, p_pcom: pcom, p_ppub: ppub });
+  if (error) throw new Error(error.message);
+  clearSessionCache('mirlo_productos_');
+}
+
+export async function upsertProducto(p) {
+  const { data, error } = await supabase
+    .rpc('upsert_producto', {
+      p_id: p.id || null,
+      p_empresa_id: p.empresa_id,
+      p_name: p.name,
+      p_brand: p.brand,
+      p_cat: p.cat,
+      p_size: p.size || null,
+      p_units: p.units,
+      p_pcom: p.pcom,
+      p_ppub: p.ppub,
+      p_barcode: p.barcode || null,
+      p_img: p.img || null,
+      p_es_nuevo: !!p.es_nuevo,
+      p_activo: p.activo ?? true
+    });
+  if (error) throw new Error(error.message);
+  clearSessionCache('mirlo_productos_');
+  return data;
+}
+
+export async function toggleProducto(id, activo) {
+  const { error } = await supabase
+    .rpc('toggle_producto', { p_id: id, p_activo: activo });
   if (error) throw new Error(error.message);
   clearSessionCache('mirlo_productos_');
 }

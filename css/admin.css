@@ -155,7 +155,7 @@ body { font-family: 'Sora', sans-serif; background: var(--light); margin: 0; }
 }
 .admin-precios-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr auto;
+  grid-template-columns: 2fr 1fr 1fr 1fr auto auto;
   gap: 1rem; align-items: center;
   padding: .75rem 1.25rem;
   border-bottom: 1px solid var(--frost);
@@ -174,3 +174,5 @@ body { font-family: 'Sora', sans-serif; background: var(--light); margin: 0; }
   transition: border-color .3s;
 }
 .apm-input:focus { outline: none; border-color: var(--teal); }
+.admin-precios-row-inactive .apm-name,
+.admin-precios-row-inactive .apm-size { opacity: .55; }

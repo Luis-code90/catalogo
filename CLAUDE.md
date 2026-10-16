@@ -412,6 +412,13 @@ a `PUBLIC`, no a `anon` directamente). Detalle completo en AUDIT.md (C3, seccion
 - Precios: listado de productos agrupados por categoría con inputs editables
   para pcom y ppub. Guarda en blur o Enter via RPC update_precio_producto.
   Limpia caché mirlo_productos_* automáticamente. Feedback visual naranja→verde.
+  CRUD de productos (rama feature/admin-productos): botón "+ Nuevo producto", "Editar"
+  (formulario completo: marca, nombre, cat, size, units, precios, barcode, img, es_nuevo,
+  activo), "Duplicar" (precarga marca/cat/size/units para el reemplazo de un producto) y
+  pill Activo/Inactivo por fila. No hay borrado físico — se desactiva (activo=false) para
+  no romper FKs de pedido_detalle/promociones. RPCs upsert_producto (id = max+1 con lock,
+  valida empresa del admin) y toggle_producto, definidas en sql/productos_admin_rpcs.sql
+  (hay que correrlo a mano en el SQL Editor de Supabase; el MCP es read-only).
 
 ### Columnas nuevas en tabla perfiles:
 - canal text — canal de distribución del cliente
@@ -454,10 +461,23 @@ Esta tabla de pedidos es la fuente de datos para el futuro dashboard de ventas d
 ## Pendientes
 - fecha_lanzamiento en productos para ordenar y archivar lanzamientos
 - Reemplazar barcodes temporales (TEMP-106 a TEMP-114) por códigos reales
-- AUDIT.md hallazgo A6: precios comerciales (`pcom`) legibles sin autenticación
-  (policy `SELECT USING (true)` en `productos`). Requiere decisión de diseño — los
-  invitados deben seguir viendo el catálogo sin precios. No bloquea pruebas con
-  vendedores; sí conviene resolverlo antes de difundir el catálogo públicamente.
+- A6 (precios legibles sin auth): CÓDIGO LISTO en rama feature/admin-productos, falta
+  correr sql/a6_precios_protegidos.sql y a6b_vendedores_promociones.sql en Supabase JUNTO con el deploy (ver abajo).
+
+## A6 — precios protegidos (rama feature/admin-productos, pendiente de deploy)
+pcom/ppub ya no se leen de la tabla: REVOKE SELECT en productos + GRANT SELECT por columna
+(sin pcom/ppub) a anon/authenticated, y RPC get_precios(p_empresa_id) que solo responde a
+perfiles estado='activo' de esa empresa. fetchProductos pide columnas explícitas (PRODUCTO_COLS)
+y su caché ya no tiene precios; auth.js cargarPrecios() los mezcla en state tras initAuth/
+handleLogin y quitarPrecios() los saca en logout. fetchProductosAdmin mezcla get_precios
+(caché mirlo_productos_admin_v3_*). Un pending NO recibe precios (server-side).
+A6b: vendedores y promociones también dejan de ser públicos (sql/a6b_vendedores_promociones.sql):
+policy SELECT solo para perfiles 'activo' de la misma empresa + REVOKE a anon. app.js ya no los pide
+en el arranque; auth.js cargarDatosPrivados() carga precios+vendedores+promos tras resolver la sesión
+y quitarDatosPrivados() los vacía en logout. Un invitado ve productos sin precios y sin promos.
+**Orden de deploy:** el SQL rompe select('*') sobre productos, así que correrlo antes de
+publicar el frontend (o después) deja caído el catálogo en producción. Hacer ambos juntos.
+Rollback: GRANT SELECT ON public.productos TO anon, authenticated.
 
 ## Auditoría de código (junio 2026)
 Análisis completo realizado antes de pruebas con vendedores. 22 problemas en 5 categorías.

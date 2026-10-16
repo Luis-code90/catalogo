@@ -1,4 +1,5 @@
-import { getCurrentUser, getPerfilByUserId, fetchUsuariosPending, fetchUsuariosActivos, aprobarUsuario, actualizarCanalUsuario, fetchPromocionesAdmin, togglePromocion, upsertPromocion, fetchProductosAdmin, deletePromocion, updatePrecioProducto } from './supabase.js';
+import { getCurrentUser, getPerfilByUserId, fetchUsuariosPending, fetchUsuariosActivos, aprobarUsuario, actualizarCanalUsuario, fetchPromocionesAdmin, togglePromocion, upsertPromocion, fetchProductosAdmin, deletePromocion, updatePrecioProducto, upsertProducto, toggleProducto } from './supabase.js';
+import { CAT } from './data.js';
 
 const CANALES = [
   { value: '', label: '— Seleccionar canal —' },
@@ -399,22 +400,29 @@ window.savePromo = async function(id) {
   }
 };
 
+let productosActuales = [];
+
 async function loadPrecios() {
   const container = document.getElementById('adminTabContent');
   container.innerHTML = '<p class="admin-loading">Cargando...</p>';
   try {
-    const productos = await fetchProductosAdmin(empresaId);
+    productosActuales = await fetchProductosAdmin(empresaId);
+    const productos = productosActuales;
 
     const cats = [...new Set(productos.map(p => p.cat))];
 
     container.innerHTML = `
-      <div class="admin-precios-header">
-        <h3>Productos (${productos.length})</h3>
-        <p class="admin-precios-hint">Editá los precios y presioná Enter o hacé click fuera para guardar.</p>
+      <div class="admin-promo-header">
+        <div class="admin-precios-header">
+          <h3>Productos (${productos.length})</h3>
+          <p class="admin-precios-hint">Editá los precios y presioná Enter o hacé click fuera para guardar.</p>
+        </div>
+        <button class="admin-btn-new" onclick="window.showProductoForm()">+ Nuevo producto</button>
       </div>
+      <div id="productoFormContainer"></div>
       ${cats.map(cat => `
         <div class="admin-precios-section">
-          <div class="admin-precios-cat">${cat.toUpperCase()}</div>
+          <div class="admin-precios-cat">${esc(cat.toUpperCase())}</div>
           <div class="admin-precios-list">
             <div class="admin-precios-row admin-precios-thead">
               <span>Producto</span>
@@ -422,18 +430,21 @@ async function loadPrecios() {
               <span>Precio comercio</span>
               <span>Precio público</span>
               <span>Estado</span>
+              <span></span>
             </div>
             ${productos.filter(p => p.cat === cat).map(p => `
-              <div class="admin-precios-row" data-id="${p.id}">
-                <span class="apm-name">${p.brand} ${p.name}</span>
-                <span class="apm-size">${p.size} · ${p.units}u</span>
+              <div class="admin-precios-row ${p.activo ? '' : 'admin-precios-row-inactive'}" data-id="${p.id}">
+                <span class="apm-name">${esc(p.brand)} ${esc(p.name)}${p.es_nuevo ? ' <small>· NUEVO</small>' : ''}</span>
+                <span class="apm-size">${esc(p.size)} · ${p.units}u</span>
                 <input class="apm-input apm-pcom" type="number" step="0.01"
-                  value="${p.pcom}" data-id="${p.id}" data-field="pcom">
+                  value="${p.pcom ?? ''}" data-id="${p.id}" data-field="pcom">
                 <input class="apm-input apm-ppub" type="number" step="0.01"
                   value="${p.ppub || ''}" data-id="${p.id}" data-field="ppub">
-                <span class="admin-badge ${p.activo ? 'admin-badge-active' : 'admin-badge-inactive'}">
+                <button class="admin-btn-toggle ${p.activo ? 'admin-btn-toggle-active' : 'admin-btn-toggle-inactive'}"
+                  data-toggle-id="${p.id}" data-activo="${p.activo ? '1' : '0'}">
                   ${p.activo ? 'Activo' : 'Inactivo'}
-                </span>
+                </button>
+                <button class="admin-btn-edit" data-edit-id="${p.id}">Editar</button>
               </div>
             `).join('')}
           </div>
@@ -456,11 +467,143 @@ async function loadPrecios() {
       input.addEventListener('blur', save);
       input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
     });
+
+    container.querySelectorAll('[data-toggle-id]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        try {
+          await toggleProducto(parseInt(btn.dataset.toggleId), btn.dataset.activo !== '1');
+          loadPrecios();
+        } catch (e) {
+          btn.disabled = false;
+          console.error(e);
+        }
+      });
+    });
+
+    container.querySelectorAll('[data-edit-id]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        showProductoForm(productosActuales.find(p => p.id === parseInt(btn.dataset.editId)));
+      });
+    });
   } catch (e) {
     container.innerHTML = '<p class="admin-empty">Error al cargar datos. Intentá de nuevo.</p>';
     console.error(e);
   }
 }
+
+// producto: edición. base: producto existente usado como plantilla para "Duplicar" (crea uno nuevo).
+function showProductoForm(producto = null, base = null) {
+  const isEdit = !!producto;
+  const src = producto || base || {};
+  const cats = [...new Set([...Object.keys(CAT), ...productosActuales.map(p => p.cat)])];
+  const marcas = [...new Set(productosActuales.map(p => p.brand))].sort();
+  const title = isEdit ? 'Editar producto'
+    : base ? `Nuevo producto (copia de ${esc(base.brand)} ${esc(base.name)})` : 'Nuevo producto';
+
+  document.getElementById('productoFormContainer').innerHTML = `
+    <div class="admin-promo-form">
+      <h4>${title}</h4>
+      <div class="admin-form-grid">
+        <div class="admin-form-group">
+          <label>Marca *</label>
+          <input id="prf-brand" type="text" list="prf-marcas" value="${esc(src.brand || '')}">
+          <datalist id="prf-marcas">${marcas.map(m => `<option value="${esc(m)}">`).join('')}</datalist>
+        </div>
+        <div class="admin-form-group">
+          <label>Nombre *</label>
+          <input id="prf-name" type="text" value="${isEdit ? esc(src.name || '') : ''}">
+        </div>
+        <div class="admin-form-group">
+          <label>Categoría *</label>
+          <select id="prf-cat">
+            <option value="">— Seleccioná —</option>
+            ${cats.map(c => `<option value="${esc(c)}" ${src.cat === c ? 'selected' : ''}>${esc(CAT[c] || c)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="admin-form-group">
+          <label>Presentación (ej: 473cc)</label>
+          <input id="prf-size" type="text" value="${esc(src.size || '')}">
+        </div>
+        <div class="admin-form-group">
+          <label>Unidades por pack *</label>
+          <input id="prf-units" type="number" min="1" value="${src.units || ''}">
+        </div>
+        <div class="admin-form-group">
+          <label>Precio comercio *</label>
+          <input id="prf-pcom" type="number" step="0.01" value="${isEdit ? (src.pcom ?? '') : ''}">
+        </div>
+        <div class="admin-form-group">
+          <label>Precio público</label>
+          <input id="prf-ppub" type="number" step="0.01" value="${isEdit ? (src.ppub || '') : ''}">
+        </div>
+        <div class="admin-form-group">
+          <label>Código de barras</label>
+          <input id="prf-barcode" type="text" value="${isEdit ? esc(src.barcode || '') : ''}">
+        </div>
+        <div class="admin-form-group admin-form-group-full">
+          <label>URL de imagen</label>
+          <input id="prf-img" type="text" value="${isEdit ? esc(src.img || '') : ''}">
+        </div>
+        <div class="admin-form-group admin-form-group-full">
+          <label class="admin-check-label"><input type="checkbox" id="prf-nuevo" ${isEdit && src.es_nuevo ? 'checked' : ''}> Marcar como nuevo lanzamiento</label>
+          <label class="admin-check-label"><input type="checkbox" id="prf-activo" ${isEdit ? (src.activo ? 'checked' : '') : 'checked'}> Producto activo (visible en el catálogo)</label>
+        </div>
+      </div>
+      <p class="admin-form-error" id="prf-error"></p>
+      <div class="admin-form-actions">
+        <button class="admin-btn-cancel" onclick="document.getElementById('productoFormContainer').innerHTML=''">Cancelar</button>
+        ${isEdit ? `<button class="admin-btn-cancel" onclick="window.duplicarProducto(${src.id})">Duplicar</button>` : ''}
+        <button class="admin-btn-save" id="prf-save" onclick="window.saveProducto(${isEdit ? src.id : 'null'})">
+          ${isEdit ? 'Guardar cambios' : 'Crear producto'}
+        </button>
+      </div>
+    </div>
+  `;
+  document.getElementById('productoFormContainer').scrollIntoView({ behavior: 'smooth' });
+}
+
+window.showProductoForm = () => showProductoForm();
+window.duplicarProducto = id => showProductoForm(null, productosActuales.find(p => p.id === id));
+
+window.saveProducto = async function(id) {
+  const saveBtn = document.getElementById('prf-save');
+  const errEl = document.getElementById('prf-error');
+  const val = k => document.getElementById(k).value.trim();
+
+  const producto = {
+    id,
+    empresa_id: empresaId,
+    brand: val('prf-brand'),
+    name: val('prf-name'),
+    cat: val('prf-cat'),
+    size: val('prf-size'),
+    units: parseInt(val('prf-units')),
+    pcom: parseFloat(val('prf-pcom')),
+    ppub: parseFloat(val('prf-ppub')) || null,
+    barcode: val('prf-barcode'),
+    img: val('prf-img'),
+    es_nuevo: document.getElementById('prf-nuevo').checked,
+    activo: document.getElementById('prf-activo').checked
+  };
+
+  if (!producto.brand || !producto.name || !producto.cat || !(producto.units >= 1) || !(producto.pcom > 0)) {
+    errEl.textContent = 'Completá marca, nombre, categoría, unidades y precio comercio';
+    return;
+  }
+  errEl.textContent = '';
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Guardando...';
+  try {
+    await upsertProducto(producto);
+    loadPrecios();
+  } catch (e) {
+    saveBtn.disabled = false;
+    saveBtn.textContent = id ? 'Guardar cambios' : 'Crear producto';
+    errEl.textContent = 'Error al guardar: ' + e.message;
+    console.error(e);
+  }
+};
 
 window.toggleCanal = function(id) {
   const rol = document.getElementById(`rol-${id}`).value;
