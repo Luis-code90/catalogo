@@ -290,13 +290,13 @@ export async function upsertPromocion(promo) {
 }
 
 export async function fetchProductosAdmin(empresaId) {
-  const key = `mirlo_productos_admin_${empresaId}`;
+  const key = `mirlo_productos_admin_v2_${empresaId}`;
   const cached = getCached(key);
   if (cached) return cached;
 
   const { data, error } = await supabase
     .from('productos')
-    .select('id, name, brand, cat, size, units, pcom, ppub, activo')
+    .select('id, name, brand, cat, size, units, pcom, ppub, barcode, img, es_nuevo, activo')
     .eq('empresa_id', empresaId)
     .order('cat')
     .order('brand')
@@ -310,6 +310,35 @@ export async function fetchProductosAdmin(empresaId) {
 export async function updatePrecioProducto(id, pcom, ppub) {
   const { error } = await supabase
     .rpc('update_precio_producto', { p_id: id, p_pcom: pcom, p_ppub: ppub });
+  if (error) throw new Error(error.message);
+  clearSessionCache('mirlo_productos_');
+}
+
+export async function upsertProducto(p) {
+  const { data, error } = await supabase
+    .rpc('upsert_producto', {
+      p_id: p.id || null,
+      p_empresa_id: p.empresa_id,
+      p_name: p.name,
+      p_brand: p.brand,
+      p_cat: p.cat,
+      p_size: p.size || null,
+      p_units: p.units,
+      p_pcom: p.pcom,
+      p_ppub: p.ppub,
+      p_barcode: p.barcode || null,
+      p_img: p.img || null,
+      p_es_nuevo: !!p.es_nuevo,
+      p_activo: p.activo ?? true
+    });
+  if (error) throw new Error(error.message);
+  clearSessionCache('mirlo_productos_');
+  return data;
+}
+
+export async function toggleProducto(id, activo) {
+  const { error } = await supabase
+    .rpc('toggle_producto', { p_id: id, p_activo: activo });
   if (error) throw new Error(error.message);
   clearSessionCache('mirlo_productos_');
 }

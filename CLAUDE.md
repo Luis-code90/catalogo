@@ -412,6 +412,13 @@ a `PUBLIC`, no a `anon` directamente). Detalle completo en AUDIT.md (C3, seccion
 - Precios: listado de productos agrupados por categoría con inputs editables
   para pcom y ppub. Guarda en blur o Enter via RPC update_precio_producto.
   Limpia caché mirlo_productos_* automáticamente. Feedback visual naranja→verde.
+  CRUD de productos (rama feature/admin-productos): botón "+ Nuevo producto", "Editar"
+  (formulario completo: marca, nombre, cat, size, units, precios, barcode, img, es_nuevo,
+  activo), "Duplicar" (precarga marca/cat/size/units para el reemplazo de un producto) y
+  pill Activo/Inactivo por fila. No hay borrado físico — se desactiva (activo=false) para
+  no romper FKs de pedido_detalle/promociones. RPCs upsert_producto (id = max+1 con lock,
+  valida empresa del admin) y toggle_producto, definidas en sql/productos_admin_rpcs.sql
+  (hay que correrlo a mano en el SQL Editor de Supabase; el MCP es read-only).
 
 ### Columnas nuevas en tabla perfiles:
 - canal text — canal de distribución del cliente
