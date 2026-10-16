@@ -3,31 +3,44 @@ import {
   getCurrentUser, getPerfilByUserId,
   createPerfil, createComercio, createVendedorAsignado,
   fetchEmpresa, resetPassword, onAuthStateChange, updatePassword,
-  fetchPrecios, clearPriceCache
+  fetchPrecios, fetchVendedores, fetchPromociones, clearPriceCache
 } from './supabase.js';
-import { getProducts, setProducts, getEmpresaId, setIsAdult, setCurrentUser, setCurrentPerfil, setUserRole, setClientName, setClientBusiness, setClientAddress, setSelectedVendor } from './state.js';
+import { getProducts, setProducts, setVendedores, setPromociones, getEmpresaId, setIsAdult, setCurrentUser, setCurrentPerfil, setUserRole, setClientName, setClientBusiness, setClientAddress, setSelectedVendor } from './state.js';
 import { filter } from './filters.js';
 import { hideAlcohol } from './filters.js';
 import { updateHeaderUI, updateUIForRole } from './ui.js';
 
-// Precios (pcom/ppub) no viajan en el catálogo público: se piden por RPC solo a
-// perfiles activos y se mezclan en memoria (A6). Si falla, el catálogo sigue sin precios.
-async function cargarPrecios() {
-  try {
-    const precios = await fetchPrecios(getEmpresaId());
-    const porId = new Map(precios.map(r => [r.id, r]));
+// Datos que solo ve un perfil activo (A6/A6b): precios (RPC get_precios), vendedores y
+// promociones (RLS). No viajan en el catálogo público; se piden tras resolver la sesión.
+// Cada pedido falla por separado: si uno falla, el catálogo sigue con el resto.
+async function cargarDatosPrivados() {
+  const empresaId = getEmpresaId();
+  const [precios, vendedores, promociones] = await Promise.allSettled([
+    fetchPrecios(empresaId),
+    fetchVendedores(empresaId),
+    fetchPromociones(empresaId)
+  ]);
+
+  if (precios.status === 'fulfilled') {
+    const porId = new Map(precios.value.map(r => [r.id, r]));
     setProducts(getProducts().map(p => ({
       ...p,
       pcom: porId.get(p.id)?.pcom ?? null,
       ppub: porId.get(p.id)?.ppub ?? null
     })));
-  } catch (e) {
-    console.error('No se pudieron cargar los precios:', e);
-  }
+  } else console.error('No se pudieron cargar los precios:', precios.reason);
+
+  if (vendedores.status === 'fulfilled') setVendedores(vendedores.value);
+  else console.error('No se pudieron cargar los vendedores:', vendedores.reason);
+
+  if (promociones.status === 'fulfilled') setPromociones(promociones.value);
+  else console.error('No se pudieron cargar las promociones:', promociones.reason);
 }
 
-function quitarPrecios() {
+function quitarDatosPrivados() {
   setProducts(getProducts().map(({ pcom, ppub, ...resto }) => resto));
+  setVendedores([]);
+  setPromociones([]);
   clearPriceCache();
 }
 
@@ -63,7 +76,7 @@ export async function initAuth() {
   setCurrentUser(user);
   setCurrentPerfil(perfil);
   setUserRole('authenticated');
-  await cargarPrecios();
+  await cargarDatosPrivados();
 
   if (perfil.fecha_nacimiento) {
     const edad = calcularEdad(perfil.fecha_nacimiento);
@@ -133,7 +146,7 @@ function resetToGuest() {
   setCurrentUser(null);
   setCurrentPerfil(null);
   setUserRole('guest');
-  quitarPrecios();
+  quitarDatosPrivados();
   setClientName('');
   setClientBusiness('');
   setClientAddress('');
@@ -230,7 +243,7 @@ export async function handleLogin() {
     setCurrentUser(user);
     setCurrentPerfil(perfil);
     setUserRole('authenticated');
-    await cargarPrecios();
+    await cargarDatosPrivados();
 
     if (perfil.fecha_nacimiento) {
       const edad = calcularEdad(perfil.fecha_nacimiento);
@@ -328,7 +341,7 @@ export function continueAsGuest() {
 
 export async function handleLogout() {
   await logoutUser();
-  quitarPrecios();
+  quitarDatosPrivados();
   const loginEmail = document.getElementById('loginEmail');
   const loginPassword = document.getElementById('loginPassword');
   if (loginEmail) loginEmail.value = '';

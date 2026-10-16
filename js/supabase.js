@@ -11,9 +11,11 @@ function clearSessionCache(prefix) {
     .forEach(k => sessionStorage.removeItem(k));
 }
 
-// Al cerrar sesión: el caché admin es el único que guarda precios.
+// Al cerrar sesión: limpia cachés con datos privados (precios admin, vendedores, promos).
 export function clearPriceCache() {
   clearSessionCache('mirlo_productos_admin_');
+  clearSessionCache('mirlo_vendedores_');
+  clearSessionCache('mirlo_promociones_');
 }
 
 function getCached(key) {

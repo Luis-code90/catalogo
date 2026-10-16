@@ -1,6 +1,6 @@
 import { initAuth, handleLogin, handleRegister, handleLogout, showAuthLogin, showAuthRegister, continueAsGuest, showAuthOverlay, showForgotPassword, handleForgotPassword, listenForRecovery, handleSetNewPassword, showSetNewPassword } from './auth.js';
-import { setProducts, getProducts, setIsAdult, setVendedores, setWhatsappPhone, setEmpresaId, setPromociones, getPromociones, getUserRole, getCurrentPerfil, getCART } from './state.js';
-import { fetchProductos, fetchVendedores, fetchEmpresa, fetchPromociones } from './supabase.js';
+import { setProducts, getProducts, setIsAdult, setWhatsappPhone, setEmpresaId, getPromociones, getUserRole, getCurrentPerfil, getCART } from './state.js';
+import { fetchProductos, fetchEmpresa } from './supabase.js';
 import { updateCartUI } from './cart.js';
 import { loadCart } from './storage.js';
 import { openModal, closeModal, closeBg, changeQty, addFromModal, selectFundaSize, selectBottleMode } from './modal.js';
@@ -19,14 +19,10 @@ async function loadProducts() {
   try {
     const slug = window.location.pathname.split('/').filter(Boolean).find(p => p !== 'index.html') || 'mirlosas';
     const empresa = await fetchEmpresa(slug);
-    const [productos, vendedores, promociones] = await Promise.all([
-      fetchProductos(empresa.id),
-      fetchVendedores(empresa.id),
-      fetchPromociones(empresa.id)
-    ]);
+    // Vendedores y promociones son solo para perfiles activos (A6b): los carga auth.js
+    // en cargarDatosPrivados() una vez resuelta la sesión.
+    const productos = await fetchProductos(empresa.id);
     setProducts(productos);
-    setVendedores(vendedores);
-    setPromociones(promociones);
     setWhatsappPhone(empresa.whatsapp_phone);
     setEmpresaId(empresa.id);
     return true;

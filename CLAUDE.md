@@ -462,7 +462,7 @@ Esta tabla de pedidos es la fuente de datos para el futuro dashboard de ventas d
 - fecha_lanzamiento en productos para ordenar y archivar lanzamientos
 - Reemplazar barcodes temporales (TEMP-106 a TEMP-114) por códigos reales
 - A6 (precios legibles sin auth): CÓDIGO LISTO en rama feature/admin-productos, falta
-  correr sql/a6_precios_protegidos.sql en Supabase JUNTO con el deploy (ver abajo).
+  correr sql/a6_precios_protegidos.sql y a6b_vendedores_promociones.sql en Supabase JUNTO con el deploy (ver abajo).
 
 ## A6 — precios protegidos (rama feature/admin-productos, pendiente de deploy)
 pcom/ppub ya no se leen de la tabla: REVOKE SELECT en productos + GRANT SELECT por columna
@@ -471,6 +471,10 @@ perfiles estado='activo' de esa empresa. fetchProductos pide columnas explícita
 y su caché ya no tiene precios; auth.js cargarPrecios() los mezcla en state tras initAuth/
 handleLogin y quitarPrecios() los saca en logout. fetchProductosAdmin mezcla get_precios
 (caché mirlo_productos_admin_v3_*). Un pending NO recibe precios (server-side).
+A6b: vendedores y promociones también dejan de ser públicos (sql/a6b_vendedores_promociones.sql):
+policy SELECT solo para perfiles 'activo' de la misma empresa + REVOKE a anon. app.js ya no los pide
+en el arranque; auth.js cargarDatosPrivados() carga precios+vendedores+promos tras resolver la sesión
+y quitarDatosPrivados() los vacía en logout. Un invitado ve productos sin precios y sin promos.
 **Orden de deploy:** el SQL rompe select('*') sobre productos, así que correrlo antes de
 publicar el frontend (o después) deja caído el catálogo en producción. Hacer ambos juntos.
 Rollback: GRANT SELECT ON public.productos TO anon, authenticated.
