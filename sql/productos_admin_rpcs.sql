@@ -66,3 +66,8 @@ REVOKE EXECUTE ON FUNCTION public.upsert_producto(integer, uuid, text, text, tex
 REVOKE EXECUTE ON FUNCTION public.toggle_producto(integer, boolean) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.upsert_producto(integer, uuid, text, text, text, text, integer, numeric, numeric, text, text, boolean, boolean) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.toggle_producto(integer, boolean) TO authenticated;
+
+-- Supabase otorga EXECUTE a anon por default privileges al crear funciones en public
+-- (aparece como anon=X en proacl). Se revoca explícito para igualar a las demás RPCs admin.
+REVOKE EXECUTE ON FUNCTION public.upsert_producto(integer, uuid, text, text, text, text, integer, numeric, numeric, text, text, boolean, boolean) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.toggle_producto(integer, boolean) FROM anon;
