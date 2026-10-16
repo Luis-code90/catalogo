@@ -382,6 +382,8 @@ no está incluido en el SQL de la sección 8.
 > considerar en una futura pasada de limpieza, no urgente.
 
 #### A6. Los precios comerciales (`pcom`) son legibles públicamente sin autenticación
+> **Estado:** fix implementado en la rama feature/admin-productos (sql/a6_precios_protegidos.sql + get_precios). Pendiente de correr el SQL junto con el deploy.
+
 **Dónde:** policy RLS de `productos` — `SELECT USING (true)` para el rol `public`.
 Mismo caso en `vendedores`, `promociones` y `empresas`.
 

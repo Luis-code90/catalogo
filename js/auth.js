@@ -2,12 +2,34 @@ import {
   registerUser, loginUser, logoutUser,
   getCurrentUser, getPerfilByUserId,
   createPerfil, createComercio, createVendedorAsignado,
-  fetchEmpresa, resetPassword, onAuthStateChange, updatePassword
+  fetchEmpresa, resetPassword, onAuthStateChange, updatePassword,
+  fetchPrecios, clearPriceCache
 } from './supabase.js';
-import { setIsAdult, setCurrentUser, setCurrentPerfil, setUserRole, setClientName, setClientBusiness, setClientAddress, setSelectedVendor } from './state.js';
+import { getProducts, setProducts, getEmpresaId, setIsAdult, setCurrentUser, setCurrentPerfil, setUserRole, setClientName, setClientBusiness, setClientAddress, setSelectedVendor } from './state.js';
 import { filter } from './filters.js';
 import { hideAlcohol } from './filters.js';
 import { updateHeaderUI, updateUIForRole } from './ui.js';
+
+// Precios (pcom/ppub) no viajan en el catálogo público: se piden por RPC solo a
+// perfiles activos y se mezclan en memoria (A6). Si falla, el catálogo sigue sin precios.
+async function cargarPrecios() {
+  try {
+    const precios = await fetchPrecios(getEmpresaId());
+    const porId = new Map(precios.map(r => [r.id, r]));
+    setProducts(getProducts().map(p => ({
+      ...p,
+      pcom: porId.get(p.id)?.pcom ?? null,
+      ppub: porId.get(p.id)?.ppub ?? null
+    })));
+  } catch (e) {
+    console.error('No se pudieron cargar los precios:', e);
+  }
+}
+
+function quitarPrecios() {
+  setProducts(getProducts().map(({ pcom, ppub, ...resto }) => resto));
+  clearPriceCache();
+}
 
 function calcularEdad(fechaNacimiento) {
   const hoy = new Date();
@@ -41,6 +63,7 @@ export async function initAuth() {
   setCurrentUser(user);
   setCurrentPerfil(perfil);
   setUserRole('authenticated');
+  await cargarPrecios();
 
   if (perfil.fecha_nacimiento) {
     const edad = calcularEdad(perfil.fecha_nacimiento);
@@ -110,6 +133,7 @@ function resetToGuest() {
   setCurrentUser(null);
   setCurrentPerfil(null);
   setUserRole('guest');
+  quitarPrecios();
   setClientName('');
   setClientBusiness('');
   setClientAddress('');
@@ -206,6 +230,7 @@ export async function handleLogin() {
     setCurrentUser(user);
     setCurrentPerfil(perfil);
     setUserRole('authenticated');
+    await cargarPrecios();
 
     if (perfil.fecha_nacimiento) {
       const edad = calcularEdad(perfil.fecha_nacimiento);
@@ -303,6 +328,7 @@ export function continueAsGuest() {
 
 export async function handleLogout() {
   await logoutUser();
+  quitarPrecios();
   const loginEmail = document.getElementById('loginEmail');
   const loginPassword = document.getElementById('loginPassword');
   if (loginEmail) loginEmail.value = '';

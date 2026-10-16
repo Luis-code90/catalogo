@@ -461,10 +461,19 @@ Esta tabla de pedidos es la fuente de datos para el futuro dashboard de ventas d
 ## Pendientes
 - fecha_lanzamiento en productos para ordenar y archivar lanzamientos
 - Reemplazar barcodes temporales (TEMP-106 a TEMP-114) por códigos reales
-- AUDIT.md hallazgo A6: precios comerciales (`pcom`) legibles sin autenticación
-  (policy `SELECT USING (true)` en `productos`). Requiere decisión de diseño — los
-  invitados deben seguir viendo el catálogo sin precios. No bloquea pruebas con
-  vendedores; sí conviene resolverlo antes de difundir el catálogo públicamente.
+- A6 (precios legibles sin auth): CÓDIGO LISTO en rama feature/admin-productos, falta
+  correr sql/a6_precios_protegidos.sql en Supabase JUNTO con el deploy (ver abajo).
+
+## A6 — precios protegidos (rama feature/admin-productos, pendiente de deploy)
+pcom/ppub ya no se leen de la tabla: REVOKE SELECT en productos + GRANT SELECT por columna
+(sin pcom/ppub) a anon/authenticated, y RPC get_precios(p_empresa_id) que solo responde a
+perfiles estado='activo' de esa empresa. fetchProductos pide columnas explícitas (PRODUCTO_COLS)
+y su caché ya no tiene precios; auth.js cargarPrecios() los mezcla en state tras initAuth/
+handleLogin y quitarPrecios() los saca en logout. fetchProductosAdmin mezcla get_precios
+(caché mirlo_productos_admin_v3_*). Un pending NO recibe precios (server-side).
+**Orden de deploy:** el SQL rompe select('*') sobre productos, así que correrlo antes de
+publicar el frontend (o después) deja caído el catálogo en producción. Hacer ambos juntos.
+Rollback: GRANT SELECT ON public.productos TO anon, authenticated.
 
 ## Auditoría de código (junio 2026)
 Análisis completo realizado antes de pruebas con vendedores. 22 problemas en 5 categorías.

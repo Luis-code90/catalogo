@@ -11,6 +11,11 @@ function clearSessionCache(prefix) {
     .forEach(k => sessionStorage.removeItem(k));
 }
 
+// Al cerrar sesión: el caché admin es el único que guarda precios.
+export function clearPriceCache() {
+  clearSessionCache('mirlo_productos_admin_');
+}
+
 function getCached(key) {
   const raw = sessionStorage.getItem(key);
   if (!raw) return null;
@@ -40,6 +45,10 @@ export async function fetchEmpresa(slug) {
 }
 
 // ── PRODUCTOS ─────────────────────────────────────────────
+// Sin pcom/ppub: esas columnas no son legibles para anon/authenticated (A6).
+// Los precios llegan por fetchPrecios(), solo para perfiles activos.
+const PRODUCTO_COLS = 'id, empresa_id, name, brand, cat, size, units, barcode, img, activo, es_nuevo';
+
 export async function fetchProductos(empresaId) {
   const key = `mirlo_productos_${empresaId}`;
   const cached = getCached(key);
@@ -47,7 +56,7 @@ export async function fetchProductos(empresaId) {
 
   const { data, error } = await supabase
     .from('productos')
-    .select('*')
+    .select(PRODUCTO_COLS)
     .eq('empresa_id', empresaId)
     .eq('activo', true)
     .order('cat')
@@ -55,6 +64,12 @@ export async function fetchProductos(empresaId) {
     .order('name');
   if (error) throw new Error(error.message);
   sessionStorage.setItem(key, JSON.stringify(data));
+  return data;
+}
+
+export async function fetchPrecios(empresaId) {
+  const { data, error } = await supabase.rpc('get_precios', { p_empresa_id: empresaId });
+  if (error) throw new Error(error.message);
   return data;
 }
 
@@ -290,21 +305,26 @@ export async function upsertPromocion(promo) {
 }
 
 export async function fetchProductosAdmin(empresaId) {
-  const key = `mirlo_productos_admin_v2_${empresaId}`;
+  const key = `mirlo_productos_admin_v3_${empresaId}`;
   const cached = getCached(key);
   if (cached) return cached;
 
-  const { data, error } = await supabase
-    .from('productos')
-    .select('id, name, brand, cat, size, units, pcom, ppub, barcode, img, es_nuevo, activo')
-    .eq('empresa_id', empresaId)
-    .order('cat')
-    .order('brand')
-    .order('activo', { ascending: false })
-    .order('name');
+  const [{ data, error }, precios] = await Promise.all([
+    supabase
+      .from('productos')
+      .select('id, name, brand, cat, size, units, barcode, img, es_nuevo, activo')
+      .eq('empresa_id', empresaId)
+      .order('cat')
+      .order('brand')
+      .order('activo', { ascending: false })
+      .order('name'),
+    fetchPrecios(empresaId)
+  ]);
   if (error) throw new Error(error.message);
-  sessionStorage.setItem(key, JSON.stringify(data));
-  return data;
+  const porId = new Map(precios.map(r => [r.id, r]));
+  const merged = data.map(p => ({ ...p, pcom: porId.get(p.id)?.pcom ?? null, ppub: porId.get(p.id)?.ppub ?? null }));
+  sessionStorage.setItem(key, JSON.stringify(merged));
+  return merged;
 }
 
 export async function updatePrecioProducto(id, pcom, ppub) {
